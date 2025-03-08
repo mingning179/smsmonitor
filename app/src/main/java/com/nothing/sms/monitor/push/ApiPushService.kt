@@ -183,7 +183,7 @@ class ApiPushService(context: Context) : BasePushService(context) {
                 .url(apiUrl)
                 .build()
             
-            client.newCall(request).execute().use { response ->
+            client.newCall(request).execute().use {
                 // 只要能连接上就返回成功，不管服务器返回什么状态码
                 Result.success(true)
             }

@@ -11,7 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -115,7 +115,7 @@ fun KeywordsCard() {
             
             Column {
                 keywords.forEachIndexed { index, keyword ->
-                    if (index > 0) Divider(modifier = Modifier.padding(vertical = 8.dp))
+                    if (index > 0) HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                     
                     Row(
                         verticalAlignment = Alignment.CenterVertically,

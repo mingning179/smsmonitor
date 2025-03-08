@@ -308,8 +308,8 @@ class SMSDatabase(context: Context) : SQLiteOpenHelper(
         errorMessage: String? = null
     ): Long {
         val db = this.writableDatabase
-        var recordId = -1L
-        
+        val recordId: Long
+
         try {
             // 首先检查是否已经存在此服务的推送记录
             val existingRecordQuery = db.query(
