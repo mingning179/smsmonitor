@@ -6,12 +6,11 @@ import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import com.nothing.sms.monitor.push.PushService
-import com.nothing.sms.monitor.service.SMSProcessingService
+import timber.log.Timber
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
-import timber.log.Timber
 
 /**
  * 短信数据库管理类
