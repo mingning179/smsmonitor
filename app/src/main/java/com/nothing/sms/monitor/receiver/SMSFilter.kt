@@ -44,19 +44,6 @@ class SMSFilter(context: Context) {
      */
     fun isTrustedSender(sender: String): Boolean {
         //TODO 可以自行实现
-        // 移除所有非数字字符
-        val normalizedSender = sender.replace("[^0-9]".toRegex(), "")
-        
-        // 检查是否为服务号（3-6位数字）
-        if (normalizedSender.matches("^\\d{3,6}$".toRegex())) {
-            return true
-        }
-        
-        // 检查是否为正常手机号（11位数字）
-        if (normalizedSender.matches("^1[3-9]\\d{9}$".toRegex())) {
-            return true
-        }
-        
-        return false
+        return true;
     }
 } 

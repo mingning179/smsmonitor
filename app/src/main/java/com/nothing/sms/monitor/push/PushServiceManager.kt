@@ -40,7 +40,6 @@ class PushServiceManager private constructor(private val context: Context) {
         
         // 注册钉钉推送服务（也默认启用）
         val dingTalkService = DingTalkPushService(context)
-        dingTalkService.saveConfigs(mapOf("enabled" to "false"))
         registerPushService(dingTalkService)
         
         // 这里可以注册更多内置的推送服务

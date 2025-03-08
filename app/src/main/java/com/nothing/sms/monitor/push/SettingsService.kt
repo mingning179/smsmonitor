@@ -110,4 +110,27 @@ class SettingsService private constructor(context: Context) {
         val keywordsString = keywords.joinToString(",")
         prefs.edit().putString(KEY_KEYWORDS, keywordsString).apply()
     }
-} 
+
+    /**
+     * 添加关键字
+     */
+    fun addKeyword(keyword: String) {
+        if (keyword.isBlank()) return
+
+        val currentKeywords = getKeywords().toMutableList()
+        if (!currentKeywords.contains(keyword)) {
+            currentKeywords.add(keyword)
+            saveKeywords(currentKeywords)
+        }
+    }
+
+    /**
+     * 删除关键字
+     */
+    fun removeKeyword(keyword: String) {
+        val currentKeywords = getKeywords().toMutableList()
+        if (currentKeywords.remove(keyword)) {
+            saveKeywords(currentKeywords)
+        }
+    }
+}
