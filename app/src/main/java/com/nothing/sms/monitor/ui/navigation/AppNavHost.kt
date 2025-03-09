@@ -12,14 +12,9 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -65,22 +60,8 @@ fun AppNavHost(
     navController: NavHostController = rememberNavController(),
     startDestination: String = AppDestination.Home.route
 ) {
-    // 记录上次点击以防止重复点击相同项
-    var lastSelectedRoute by rememberSaveable { mutableStateOf(startDestination) }
-
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-
-    // 添加日志记录导航状态变化
-    DisposableEffect(navController) {
-        val listener = NavController.OnDestinationChangedListener { _, destination, _ ->
-            Timber.d("导航到: ${destination.route}")
-        }
-        navController.addOnDestinationChangedListener(listener)
-        onDispose {
-            navController.removeOnDestinationChangedListener(listener)
-        }
-    }
 
     Scaffold(
         bottomBar = {
@@ -91,21 +72,22 @@ fun AppNavHost(
                         icon = { Icon(item.icon, contentDescription = item.title) },
                         label = { Text(item.title) },
                         selected = selected,
+                        alwaysShowLabel = true,
                         onClick = {
-                            // 如果点击非当前选中的项，直接导航到目标
-                            if (item.route != currentRoute) {
-                                lastSelectedRoute = item.route
-                                // 清理回退栈，确保导航直接跳转
-                                navController.navigate(item.route) {
-                                    // 清理回退栈，直接跳转到目标
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
+                            try {
+                                // 清理回退栈到起始页面
+                                navController.popBackStack(
+                                    navController.graph.findStartDestination().id, 
+                                    inclusive = false
+                                )
+                                // 如果目标不在回退栈中，则导航到目标
+                                if (!navController.popBackStack(item.route, inclusive = false)) {
+                                    navController.navigate(item.route) {
+                                        launchSingleTop = true
                                     }
-                                    // 防止多次点击创建多个实例
-                                    launchSingleTop = true
-                                    // 恢复状态
-                                    restoreState = true
                                 }
+                            } catch (e: Exception) {
+                                Timber.e(e, "导航到 ${item.route} 时出错")
                             }
                         }
                     )
