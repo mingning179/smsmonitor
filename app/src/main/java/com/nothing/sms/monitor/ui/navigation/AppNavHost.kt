@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -25,6 +26,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.nothing.sms.monitor.ui.screens.AboutScreen
 import com.nothing.sms.monitor.ui.screens.HomeScreen
 import com.nothing.sms.monitor.ui.screens.RecordsScreen
 import com.nothing.sms.monitor.ui.screens.SettingsScreen
@@ -41,6 +43,7 @@ sealed class AppDestination(
     object Home : AppDestination("home", "短信监控", Icons.AutoMirrored.Filled.Message)
     object Records : AppDestination("records", "推送记录", Icons.Default.History)
     object Settings : AppDestination("settings", "设置", Icons.Default.Settings)
+    object About : AppDestination("about", "关于", Icons.Default.Info)
 }
 
 /**
@@ -49,7 +52,8 @@ sealed class AppDestination(
 val appTabItems = listOf(
     AppDestination.Home,
     AppDestination.Records,
-    AppDestination.Settings
+    AppDestination.Settings,
+    AppDestination.About
 )
 
 /**
@@ -122,6 +126,9 @@ fun AppNavHost(
             }
             composable(AppDestination.Settings.route) {
                 SettingsScreen()
+            }
+            composable(AppDestination.About.route) {
+                AboutScreen()
             }
         }
     }
