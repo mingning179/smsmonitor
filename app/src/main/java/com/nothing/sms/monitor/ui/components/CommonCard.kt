@@ -43,9 +43,9 @@ fun CommonCard(
                 ),
                 color = MaterialTheme.colorScheme.primary
             )
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             content()
         }
     }

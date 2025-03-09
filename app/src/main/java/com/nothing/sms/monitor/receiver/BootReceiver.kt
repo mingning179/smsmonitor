@@ -11,10 +11,11 @@ import timber.log.Timber
  * 开机自启动接收器，用于在设备启动时启动短信处理服务
  */
 class BootReceiver : BroadcastReceiver() {
-    
+
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action == Intent.ACTION_BOOT_COMPLETED || 
-            intent.action == "android.intent.action.REBOOT") {
+        if (intent.action == Intent.ACTION_BOOT_COMPLETED ||
+            intent.action == "android.intent.action.REBOOT"
+        ) {
 
             Timber.d("系统启动，开始短信服务")
 

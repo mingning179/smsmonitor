@@ -15,13 +15,13 @@ import java.util.concurrent.TimeUnit
  * 钉钉推送服务实现类
  */
 class DingTalkPushService(context: Context) : BasePushService(context) {
-    
+
     companion object {
         // 配置项键名
         private const val KEY_WEBHOOK_URL = "webhook_url"
         private const val KEY_SECRET = "secret"
         private const val KEY_MESSAGE_TEMPLATE = "message_template"
-        
+
         // 默认消息模板
         private const val DEFAULT_MESSAGE_TEMPLATE = """
         【短信监控】
@@ -34,7 +34,7 @@ class DingTalkPushService(context: Context) : BasePushService(context) {
         设备ID: {device_id}
         """
     }
-    
+
     // OkHttpClient实例
     private val client by lazy {
         OkHttpClient.Builder()
@@ -43,20 +43,20 @@ class DingTalkPushService(context: Context) : BasePushService(context) {
             .writeTimeout(10, TimeUnit.SECONDS)
             .build()
     }
-    
+
     private val settingsService by lazy { SettingsService.getInstance(context) }
-    
+
     init {
         // 确保消息模板存在
         if (getString(KEY_MESSAGE_TEMPLATE).isBlank()) {
             saveString(KEY_MESSAGE_TEMPLATE, DEFAULT_MESSAGE_TEMPLATE)
         }
     }
-    
+
     override val serviceType: String = "dingtalk"
-    
+
     override val serviceName: String = "钉钉机器人"
-    
+
     override suspend fun pushSMS(
         sender: String,
         content: String,
@@ -67,25 +67,25 @@ class DingTalkPushService(context: Context) : BasePushService(context) {
             if (!isEnabled) {
                 return@withContext Result.failure(IllegalStateException("钉钉推送未启用"))
             }
-            
+
             val webhookUrl = getString(KEY_WEBHOOK_URL)
             val secret = getString(KEY_SECRET)
-            
+
             if (webhookUrl.isBlank()) {
                 return@withContext Result.failure(IllegalStateException("钉钉Webhook URL未配置"))
             }
-            
+
             // 获取最终URL（可能需要签名）
             val finalUrl = if (secret.isNotBlank()) {
                 signUrl(webhookUrl, secret)
             } else {
                 webhookUrl
             }
-            
+
             // 生成消息内容
             val messageTemplate = getString(KEY_MESSAGE_TEMPLATE, DEFAULT_MESSAGE_TEMPLATE)
             val message = formatMessage(messageTemplate, sender, content, timestamp)
-            
+
             // 构建请求体
             val jsonBody = """
                 {
@@ -95,19 +95,20 @@ class DingTalkPushService(context: Context) : BasePushService(context) {
                     }
                 }
             """.trimIndent()
-            
-            val requestBody = jsonBody.toRequestBody("application/json; charset=utf-8".toMediaType())
-            
+
+            val requestBody =
+                jsonBody.toRequestBody("application/json; charset=utf-8".toMediaType())
+
             // 构建请求
             val request = Request.Builder()
                 .url(finalUrl)
                 .post(requestBody)
                 .build()
-            
+
             // 发送请求
             client.newCall(request).execute().use { response ->
                 val responseBody = response.body?.string() ?: ""
-                
+
                 if (response.isSuccessful && responseBody.contains("\"errcode\":0")) {
                     Timber.d("钉钉推送成功: $responseBody")
                     Result.success(true)
@@ -122,23 +123,23 @@ class DingTalkPushService(context: Context) : BasePushService(context) {
             Result.failure(e)
         }
     }
-    
+
     override suspend fun testConnection(): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
             val webhookUrl = getString(KEY_WEBHOOK_URL)
             val secret = getString(KEY_SECRET)
-            
+
             if (webhookUrl.isBlank()) {
                 return@withContext Result.failure(IllegalStateException("钉钉Webhook URL未配置"))
             }
-            
+
             // 获取最终URL
             val finalUrl = if (secret.isNotBlank()) {
                 signUrl(webhookUrl, secret)
             } else {
                 webhookUrl
             }
-            
+
             // 测试消息内容
             val jsonBody = """
                 {
@@ -148,19 +149,20 @@ class DingTalkPushService(context: Context) : BasePushService(context) {
                     }
                 }
             """.trimIndent()
-            
-            val requestBody = jsonBody.toRequestBody("application/json; charset=utf-8".toMediaType())
-            
+
+            val requestBody =
+                jsonBody.toRequestBody("application/json; charset=utf-8".toMediaType())
+
             // 构建请求
             val request = Request.Builder()
                 .url(finalUrl)
                 .post(requestBody)
                 .build()
-            
+
             // 发送请求
             client.newCall(request).execute().use { response ->
                 val responseBody = response.body?.string() ?: ""
-                
+
                 if (response.isSuccessful && responseBody.contains("\"errcode\":0")) {
                     Timber.d("钉钉测试连接成功: $responseBody")
                     Result.success(true)
@@ -175,7 +177,7 @@ class DingTalkPushService(context: Context) : BasePushService(context) {
             Result.failure(e)
         }
     }
-    
+
     override fun getConfigItems(): List<PushService.ConfigItem> {
         return listOf(
             PushService.ConfigItem(
@@ -205,14 +207,14 @@ class DingTalkPushService(context: Context) : BasePushService(context) {
             )
         )
     }
-    
+
     /**
      * 实现父类的抽象方法，用于保存配置
      */
     override protected fun applyConfigs(configs: Map<String, String>) {
         configs[KEY_WEBHOOK_URL]?.let { saveString(KEY_WEBHOOK_URL, it) }
         configs[KEY_SECRET]?.let { saveString(KEY_SECRET, it) }
-        configs[KEY_MESSAGE_TEMPLATE]?.let { 
+        configs[KEY_MESSAGE_TEMPLATE]?.let {
             if (it.isBlank()) {
                 saveString(KEY_MESSAGE_TEMPLATE, DEFAULT_MESSAGE_TEMPLATE)
             } else {
@@ -220,7 +222,7 @@ class DingTalkPushService(context: Context) : BasePushService(context) {
             }
         }
     }
-    
+
     /**
      * 为URL添加签名
      */
@@ -229,36 +231,41 @@ class DingTalkPushService(context: Context) : BasePushService(context) {
         val stringToSign = "$timestamp\n$secret"
         val sign = generateHmacSha256(stringToSign, secret)
         val urlEncodedSign = java.net.URLEncoder.encode(sign, "UTF-8")
-        
+
         return if (url.contains("?")) {
             "$url&timestamp=$timestamp&sign=$urlEncodedSign"
         } else {
             "$url?timestamp=$timestamp&sign=$urlEncodedSign"
         }
     }
-    
+
     /**
      * 生成HMAC-SHA256签名
      */
     private fun generateHmacSha256(data: String, key: String): String {
         val keyBytes = key.toByteArray(Charsets.UTF_8)
         val dataBytes = data.toByteArray(Charsets.UTF_8)
-        
+
         val mac = javax.crypto.Mac.getInstance("HmacSHA256")
         val secretKeySpec = javax.crypto.spec.SecretKeySpec(keyBytes, "HmacSHA256")
         mac.init(secretKeySpec)
-        
+
         val hash = mac.doFinal(dataBytes)
         return Base64.encodeToString(hash, Base64.NO_WRAP)
     }
-    
+
     /**
      * 格式化消息，替换变量
      */
-    private fun formatMessage(template: String, sender: String, content: String, timestamp: Long): String {
+    private fun formatMessage(
+        template: String,
+        sender: String,
+        content: String,
+        timestamp: Long
+    ): String {
         val time = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
             .format(java.util.Date(timestamp))
-        
+
         return template
             .replace("{sender}", sender)
             .replace("{time}", time)
@@ -266,7 +273,7 @@ class DingTalkPushService(context: Context) : BasePushService(context) {
             .replace("{device}", getDeviceInfo())
             .replace("{device_id}", settingsService.getDeviceId())
     }
-    
+
     /**
      * 将字符串转换为JSON格式（处理转义字符）
      */

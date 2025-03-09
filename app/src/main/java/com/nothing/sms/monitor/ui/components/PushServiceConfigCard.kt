@@ -40,28 +40,28 @@ import timber.log.Timber
 fun PushServiceConfigCard(service: PushService) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    
+
     // 获取服务配置项
     var configItems by remember { mutableStateOf(service.getConfigItems()) }
     var isTesting by remember { mutableStateOf(false) }
     var isSaving by remember { mutableStateOf(false) }
     var isTogglingEnabled by remember { mutableStateOf(false) }
     var refreshTrigger by remember { mutableStateOf(0) }
-    
+
     // 用于跟踪表单值的变化
-    var configValues by remember { 
-        mutableStateOf(configItems.associate { it.key to it.value }.toMutableMap()) 
+    var configValues by remember {
+        mutableStateOf(configItems.associate { it.key to it.value }.toMutableMap())
     }
-    
+
     // 用于跟踪服务是否启用
     val isEnabled = configValues["enabled"]?.toBoolean() ?: false
-    
+
     // 每当refreshTrigger变化，重新获取配置
     LaunchedEffect(refreshTrigger) {
         configItems = service.getConfigItems()
         configValues = configItems.associate { it.key to it.value }.toMutableMap()
     }
-    
+
     CommonCard(
         title = "${service.serviceName}配置",
     ) {
@@ -77,7 +77,7 @@ fun PushServiceConfigCard(service: PushService) {
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.weight(1f)
                 )
-                
+
                 Switch(
                     checked = isEnabled,
                     onCheckedChange = { isChecked ->
@@ -89,23 +89,26 @@ fun PushServiceConfigCard(service: PushService) {
                                     configValues = configValues.toMutableMap().apply {
                                         this["enabled"] = isChecked.toString()
                                     }
-                                    
+
                                     // 保存到服务
                                     service.saveConfigs(mapOf("enabled" to isChecked.toString()))
-                                    
+
                                     // 刷新配置
                                     refreshTrigger += 1
-                                    
+
                                     Toast.makeText(
                                         context,
                                         if (isChecked) "已启用${service.serviceName}" else "已禁用${service.serviceName}",
                                         Toast.LENGTH_SHORT
                                     ).show()
-                                    
+
                                     // 当服务启用时，处理待处理的消息
                                     if (isChecked) {
                                         // 发送处理待处理消息的广播
-                                        val intent = Intent(context, SMSProcessingService::class.java).apply {
+                                        val intent = Intent(
+                                            context,
+                                            SMSProcessingService::class.java
+                                        ).apply {
                                             action = SMSProcessingService.ACTION_PROCESS_PENDING
                                         }
                                         context.startService(intent)
@@ -116,7 +119,11 @@ fun PushServiceConfigCard(service: PushService) {
                                         this["enabled"] = (!isChecked).toString()
                                     }
                                     Timber.e(e, "切换服务状态失败")
-                                    Toast.makeText(context, "操作失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(
+                                        context,
+                                        "操作失败: ${e.message}",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                 } finally {
                                     isTogglingEnabled = false
                                 }
@@ -129,33 +136,45 @@ fun PushServiceConfigCard(service: PushService) {
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
         }
-        
+
         // 只在服务启用时显示其他配置
         if (isEnabled) {
             // 非启用项的其他配置项
             configItems.filter { it.key != "enabled" }.forEach { item ->
-                Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                Column(modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)) {
                     when (item.type) {
                         PushService.ConfigType.TEXT,
                         PushService.ConfigType.PASSWORD -> {
                             OutlinedTextField(
                                 value = configValues[item.key] ?: "",
-                                onValueChange = { configValues = configValues.toMutableMap().apply { this[item.key] = it } },
+                                onValueChange = {
+                                    configValues =
+                                        configValues.toMutableMap().apply { this[item.key] = it }
+                                },
                                 label = { Text(item.label) },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = item.type != PushService.ConfigType.TEXTAREA,
                                 placeholder = { Text(item.hint) }
                             )
                         }
+
                         PushService.ConfigType.TEXTAREA -> {
                             OutlinedTextField(
                                 value = configValues[item.key] ?: "",
-                                onValueChange = { configValues = configValues.toMutableMap().apply { this[item.key] = it } },
+                                onValueChange = {
+                                    configValues =
+                                        configValues.toMutableMap().apply { this[item.key] = it }
+                                },
                                 label = { Text(item.label) },
-                                modifier = Modifier.fillMaxWidth().height(120.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(120.dp),
                                 placeholder = { Text(item.hint) }
                             )
                         }
+
                         PushService.ConfigType.BOOLEAN -> {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -166,7 +185,7 @@ fun PushServiceConfigCard(service: PushService) {
                                     style = MaterialTheme.typography.bodyLarge,
                                     modifier = Modifier.weight(1f)
                                 )
-                                
+
                                 Switch(
                                     checked = configValues[item.key]?.toBoolean() ?: false,
                                     onCheckedChange = { isChecked ->
@@ -180,9 +199,9 @@ fun PushServiceConfigCard(service: PushService) {
                     }
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             // 保存和测试按钮
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -198,7 +217,11 @@ fun PushServiceConfigCard(service: PushService) {
                                 Toast.makeText(context, "设置已保存", Toast.LENGTH_SHORT).show()
                             } catch (e: Exception) {
                                 Timber.e(e, "保存配置失败")
-                                Toast.makeText(context, "保存失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(
+                                    context,
+                                    "保存失败: ${e.message}",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             } finally {
                                 isSaving = false
                             }
@@ -209,16 +232,18 @@ fun PushServiceConfigCard(service: PushService) {
                 ) {
                     if (isSaving) {
                         CircularProgressIndicator(
-                            modifier = Modifier.width(20.dp).height(20.dp),
+                            modifier = Modifier
+                                .width(20.dp)
+                                .height(20.dp),
                             strokeWidth = 2.dp
                         )
                     } else {
                         Text("保存设置")
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.width(8.dp))
-                
+
                 Button(
                     onClick = {
                         isTesting = true
@@ -227,20 +252,29 @@ fun PushServiceConfigCard(service: PushService) {
                                 // 先保存最新配置
                                 service.saveConfigs(configValues)
                                 refreshTrigger += 1 // 触发刷新
-                                
+
                                 // 测试连接
                                 val result = service.testConnection()
                                 result.fold(
-                                    onSuccess = { 
-                                        Toast.makeText(context, "连接测试成功", Toast.LENGTH_SHORT).show()
+                                    onSuccess = {
+                                        Toast.makeText(context, "连接测试成功", Toast.LENGTH_SHORT)
+                                            .show()
                                     },
-                                    onFailure = { e -> 
-                                        Toast.makeText(context, "连接测试失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    onFailure = { e ->
+                                        Toast.makeText(
+                                            context,
+                                            "连接测试失败: ${e.message}",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     }
                                 )
                             } catch (e: Exception) {
                                 Timber.e(e, "测试连接失败")
-                                Toast.makeText(context, "测试失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(
+                                    context,
+                                    "测试失败: ${e.message}",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             } finally {
                                 isTesting = false
                             }
@@ -251,7 +285,9 @@ fun PushServiceConfigCard(service: PushService) {
                 ) {
                     if (isTesting) {
                         CircularProgressIndicator(
-                            modifier = Modifier.width(20.dp).height(20.dp),
+                            modifier = Modifier
+                                .width(20.dp)
+                                .height(20.dp),
                             strokeWidth = 2.dp
                         )
                     } else {

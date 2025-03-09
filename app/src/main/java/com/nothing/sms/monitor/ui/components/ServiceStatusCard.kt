@@ -41,11 +41,11 @@ fun ServiceStatusCard() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val smsDatabase = remember { SMSDatabase(context) }
-    
+
     var stats by remember { mutableStateOf(SMSDatabase.SMSStats(0, 0, 0, 0)) }
     var isLoading by remember { mutableStateOf(false) }
     var refreshTrigger by remember { mutableStateOf(0) }
-    
+
     // 加载统计数据
     fun loadStats() {
         isLoading = true
@@ -57,20 +57,20 @@ fun ServiceStatusCard() {
             isLoading = false
         }
     }
-    
+
     // 自动刷新
     LaunchedEffect(refreshTrigger) {
         loadStats()
     }
-    
+
     // 每隔10秒自动刷新一次
     LaunchedEffect(Unit) {
-        while(true) {
+        while (true) {
             delay(10000)
             refreshTrigger += 1
         }
     }
-    
+
     CommonCard(
         title = "服务状态",
     ) {
@@ -81,31 +81,31 @@ fun ServiceStatusCard() {
             color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.Bold
         )
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         // 短信处理统计
         Text(
             text = "短信处理统计:",
             style = MaterialTheme.typography.titleSmall
         )
-        
+
         Spacer(modifier = Modifier.height(8.dp))
-        
+
         Text(
             text = "总计: ${stats.total} | 成功: ${stats.success} | 失败: ${stats.failed} | 待处理: ${stats.pending} | 部分成功: ${stats.partialSuccess}",
             style = MaterialTheme.typography.bodyMedium
         )
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         // 操作按钮
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Button(
-                onClick = { 
+                onClick = {
                     refreshTrigger += 1
                 },
                 modifier = Modifier.weight(1f),
@@ -120,9 +120,9 @@ fun ServiceStatusCard() {
                     modifier = Modifier.padding(start = 4.dp)
                 )
             }
-            
+
             Spacer(modifier = Modifier.weight(0.2f))
-            
+
             Button(
                 onClick = {
                     // 发送处理待处理消息的Intent
@@ -130,14 +130,14 @@ fun ServiceStatusCard() {
                         action = SMSProcessingService.ACTION_PROCESS_PENDING
                     }
                     context.startService(serviceIntent)
-                    
+
                     // 显示一个Toast提示
                     Toast.makeText(
                         context,
                         "正在处理待处理消息...",
                         Toast.LENGTH_SHORT
                     ).show()
-                    
+
                     // 延迟刷新UI
                     scope.launch {
                         delay(2000) // 增加延迟，让服务有足够时间处理

@@ -33,17 +33,17 @@ fun StatusReportSettingCard() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val settingsService = remember { SettingsService.getInstance(context) }
-    
-    var statusReportInterval by remember { 
-        mutableStateOf(settingsService.getStatusReportInterval().toString()) 
+
+    var statusReportInterval by remember {
+        mutableStateOf(settingsService.getStatusReportInterval().toString())
     }
     var refreshTrigger by remember { mutableStateOf(0) }
-    
+
     // 刷新状态
     LaunchedEffect(refreshTrigger) {
         statusReportInterval = settingsService.getStatusReportInterval().toString()
     }
-    
+
     CommonCard(
         title = "状态上报设置",
     ) {
@@ -52,9 +52,9 @@ fun StatusReportSettingCard() {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
@@ -66,9 +66,9 @@ fun StatusReportSettingCard() {
                 modifier = Modifier.weight(1f),
                 singleLine = true
             )
-            
+
             Spacer(modifier = Modifier.width(8.dp))
-            
+
             Button(
                 onClick = {
                     scope.launch {

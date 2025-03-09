@@ -16,21 +16,21 @@ class Application : Application() {
         super.onCreate()
         Timber.plant(Timber.DebugTree())
         Timber.d("应用程序初始化")
-        
+
         // 初始化服务
         initializeServices()
-        
+
         // 启动主服务
         startSMSService()
     }
-    
+
     /**
      * 初始化各项服务
      */
     private fun initializeServices() {
         // 初始化设置服务
         SettingsService.getInstance(this)
-        
+
         // 初始化推送服务管理器
         PushServiceManager.getInstance(this)
     }

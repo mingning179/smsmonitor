@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.nothing.sms.monitor.push.PushServiceManager
+import com.nothing.sms.monitor.ui.components.KeywordsCard
 import com.nothing.sms.monitor.ui.components.PushServiceConfigCard
 import com.nothing.sms.monitor.ui.components.StatusReportSettingCard
 
@@ -30,7 +31,7 @@ fun SettingsScreen() {
     val context = LocalContext.current
     val pushServiceManager = remember { PushServiceManager.getInstance(context) }
     val services = remember { pushServiceManager.getAllServices() }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -49,9 +50,12 @@ fun SettingsScreen() {
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
+            // 短信监控关键字设置
+            KeywordsCard()
+
             // 状态上报设置
             StatusReportSettingCard()
-            
+
             // 推送服务配置
             services.forEach { service ->
                 PushServiceConfigCard(service = service)

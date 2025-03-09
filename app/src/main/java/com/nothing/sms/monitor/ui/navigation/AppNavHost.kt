@@ -67,7 +67,7 @@ fun AppNavHost(
 ) {
     // 记录上次点击以防止重复点击相同项
     var lastSelectedRoute by rememberSaveable { mutableStateOf(startDestination) }
-    
+
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 

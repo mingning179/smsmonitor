@@ -58,12 +58,12 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    
+
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.8.7")
     // Icons
     implementation("androidx.compose.material:material-icons-extended:1.6.8")
-    
+
     // OkHttp for network requests
     implementation(libs.okhttp)
     // Gson for JSON parsing

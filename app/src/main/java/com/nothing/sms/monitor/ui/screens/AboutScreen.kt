@@ -1,7 +1,9 @@
 package com.nothing.sms.monitor.ui.screens
 
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -33,8 +35,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import android.content.pm.PackageManager
-import android.os.Build
 
 /**
  * 关于页面
@@ -46,7 +46,10 @@ fun AboutScreen() {
     val context = LocalContext.current
     val packageInfo = try {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.packageManager.getPackageInfo(context.packageName, PackageManager.PackageInfoFlags.of(0))
+            context.packageManager.getPackageInfo(
+                context.packageName,
+                PackageManager.PackageInfoFlags.of(0)
+            )
         } else {
             @Suppress("DEPRECATION")
             context.packageManager.getPackageInfo(context.packageName, 0)
@@ -54,7 +57,7 @@ fun AboutScreen() {
     } catch (e: Exception) {
         null
     }
-    
+
     val versionName = packageInfo?.versionName ?: "未知"
     val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
         packageInfo?.longVersionCode ?: 0
@@ -62,7 +65,7 @@ fun AboutScreen() {
         @Suppress("DEPRECATION")
         packageInfo?.versionCode?.toLong() ?: 0
     }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -88,16 +91,16 @@ fun AboutScreen() {
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold
             )
-            
+
             // 版本信息
             Text(
                 text = "版本 $versionName ($versionCode)",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            
+
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             // 应用简介
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -110,18 +113,18 @@ fun AboutScreen() {
                         text = "应用简介",
                         style = MaterialTheme.typography.titleLarge
                     )
-                    
+
                     Spacer(modifier = Modifier.height(8.dp))
-                    
+
                     Text(
                         text = "这是一个Android平台的短信监控应用，能够自动捕获并通过多种方式推送短信内容。支持关键词过滤、多渠道推送和完整的记录管理。",
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             // 功能特点
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -134,9 +137,9 @@ fun AboutScreen() {
                         text = "功能特点",
                         style = MaterialTheme.typography.titleLarge
                     )
-                    
+
                     Spacer(modifier = Modifier.height(8.dp))
-                    
+
                     FeatureItem("关键词过滤：根据预设关键词自动识别重要短信")
                     FeatureItem("多渠道推送：支持API接口和钉钉群等多种推送方式")
                     FeatureItem("服务扩展：具备可扩展的推送服务框架，易于添加新的推送渠道")
@@ -145,9 +148,9 @@ fun AboutScreen() {
                     FeatureItem("记录管理：完整的推送记录查看和管理功能")
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             // 开源说明
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -160,16 +163,16 @@ fun AboutScreen() {
                         text = "开源说明",
                         style = MaterialTheme.typography.titleLarge
                     )
-                    
+
                     Spacer(modifier = Modifier.height(8.dp))
-                    
+
                     Text(
                         text = "本项目基于MIT许可证开源，您可以自由使用、修改和分发本软件。",
                         style = MaterialTheme.typography.bodyMedium
                     )
-                    
+
                     Spacer(modifier = Modifier.height(16.dp))
-                    
+
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -208,9 +211,9 @@ fun AboutScreen() {
                     }
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             // 第三方库
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -223,24 +226,24 @@ fun AboutScreen() {
                         text = "第三方库",
                         style = MaterialTheme.typography.titleLarge
                     )
-                    
+
                     Spacer(modifier = Modifier.height(8.dp))
-                    
+
                     Text(
                         text = "本项目使用了以下开源库：",
                         style = MaterialTheme.typography.bodyMedium
                     )
-                    
+
                     Spacer(modifier = Modifier.height(8.dp))
-                    
+
                     LibraryItem("Jetpack Compose", "UI框架")
                     LibraryItem("OkHttp", "网络请求库")
                     LibraryItem("Timber", "日志工具")
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             // 免责声明
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -253,23 +256,26 @@ fun AboutScreen() {
                         text = "免责声明",
                         style = MaterialTheme.typography.titleLarge
                     )
-                    
+
                     Spacer(modifier = Modifier.height(8.dp))
-                    
+
                     Text(
                         text = "本应用仅供学习和研究使用，使用者应当遵守当地法律法规，尊重用户隐私。开发者不对因使用本软件而产生的任何问题负责。",
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             // 项目仓库按钮
             Button(
                 onClick = {
                     // 此处可以添加您的项目仓库地址
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/mingning179/smsmonitor"))
+                    val intent = Intent(
+                        Intent.ACTION_VIEW,
+                        Uri.parse("https://github.com/mingning179/smsmonitor")
+                    )
                     context.startActivity(intent)
                 }
             ) {
@@ -280,9 +286,9 @@ fun AboutScreen() {
                     contentDescription = "打开链接"
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(32.dp))
-            
+
             // 版权信息
             Text(
                 text = "© 2025 SMS Monitor Project",

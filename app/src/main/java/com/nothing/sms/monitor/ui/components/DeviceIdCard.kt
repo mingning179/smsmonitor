@@ -32,7 +32,7 @@ fun DeviceIdCard() {
     val context = LocalContext.current
     val settingsService = remember { SettingsService.getInstance(context) }
     val deviceId = remember { settingsService.getDeviceId() }
-    
+
     CommonCard(
         title = "设备唯一标识",
     ) {
@@ -41,9 +41,9 @@ fun DeviceIdCard() {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         Text(
             text = deviceId,
             style = MaterialTheme.typography.bodyLarge,
@@ -52,15 +52,16 @@ fun DeviceIdCard() {
             modifier = Modifier.fillMaxWidth(),
             color = MaterialTheme.colorScheme.primary
         )
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         Button(
             onClick = {
-                val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clipboardManager =
+                    context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 val clipData = ClipData.newPlainText("设备ID", deviceId)
                 clipboardManager.setPrimaryClip(clipData)
-                
+
                 Toast.makeText(
                     context,
                     "设备ID已复制到剪贴板",

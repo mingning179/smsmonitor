@@ -15,7 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.nothing.sms.monitor.ui.components.DeviceIdCard
-import com.nothing.sms.monitor.ui.components.KeywordsCard
+import com.nothing.sms.monitor.ui.components.PermissionGuideCard
 import com.nothing.sms.monitor.ui.components.ServiceStatusCard
 
 /**
@@ -43,14 +43,14 @@ fun HomeScreen() {
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
+            // 权限引导卡片 - 确保用户开启必要权限
+            PermissionGuideCard()
+
             // 设备ID卡片
             DeviceIdCard()
 
             // 服务状态卡片
             ServiceStatusCard()
-            
-            // 关键字设置卡片
-            KeywordsCard()
         }
     }
 } 

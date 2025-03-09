@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit
  * 负责将短信内容推送到配置的API服务器
  */
 class ApiPushService(context: Context) : BasePushService(context) {
-    
+
     companion object {
         private const val KEY_API_URL = "api_url"
         private const val KEY_ENABLED = "enabled"
@@ -24,10 +24,10 @@ class ApiPushService(context: Context) : BasePushService(context) {
         private const val DEFAULT_TIMEOUT = 30L // 默认超时时间（秒）
         private const val MEDIA_TYPE = "application/json; charset=utf-8"
     }
-    
+
     private val smsDatabase by lazy { SMSDatabase(context) }
     private val settingsService by lazy { SettingsService.getInstance(context) }
-    
+
     private val client: OkHttpClient by lazy {
         OkHttpClient.Builder()
             .connectTimeout(DEFAULT_TIMEOUT, TimeUnit.SECONDS)
@@ -36,18 +36,18 @@ class ApiPushService(context: Context) : BasePushService(context) {
             .retryOnConnectionFailure(true)  // 启用连接失败重试
             .build()
     }
-    
+
     init {
         // 确保服务默认启用
         if (!getBoolean(KEY_ENABLED, false)) {
             setEnabled(true)
         }
     }
-    
+
     override val serviceType: String = "api"
-    
+
     override val serviceName: String = "API服务器"
-    
+
     override suspend fun pushSMS(
         sender: String,
         content: String,
@@ -58,13 +58,13 @@ class ApiPushService(context: Context) : BasePushService(context) {
             if (!isEnabled) {
                 return@withContext Result.failure(IllegalStateException("API推送未启用"))
             }
-            
+
             val apiUrl = "${getString(KEY_API_URL, DEFAULT_API_URL)}/report-sms"
-            
+
             if (apiUrl.isBlank()) {
                 return@withContext Result.failure(IllegalStateException("API URL未配置"))
             }
-            
+
             // 准备数据
             val deviceInfo = getDeviceInfo()
             val smsData = SMSData(
@@ -74,11 +74,11 @@ class ApiPushService(context: Context) : BasePushService(context) {
                 deviceInfo = deviceInfo,
                 deviceId = settingsService.getDeviceId()
             )
-            
+
             // 构建请求体
             val jsonBody = smsData.toJson()
             val requestBody = jsonBody.toRequestBody(MEDIA_TYPE.toMediaType())
-            
+
             // 构建请求
             val request = Request.Builder()
                 .url(apiUrl)
@@ -86,17 +86,17 @@ class ApiPushService(context: Context) : BasePushService(context) {
                 .header("Content-Type", MEDIA_TYPE)
                 .header("User-Agent", "SMSMonitor/${getAppVersion()}")
                 .build()
-            
+
             // 发送请求
             client.newCall(request).execute().use { response ->
                 val responseBody = response.body?.string() ?: ""
-                
+
                 if (response.isSuccessful) {
                     Timber.d("API推送成功: $responseBody")
-                    
+
                     // 同时也上报当前状态
                     reportStatus()
-                    
+
                     Result.success(true)
                 } else {
                     val error = "API推送失败: ${response.code}, $responseBody"
@@ -109,7 +109,7 @@ class ApiPushService(context: Context) : BasePushService(context) {
             Result.failure(e)
         }
     }
-    
+
     /**
      * 上报状态到服务器
      */
@@ -118,16 +118,16 @@ class ApiPushService(context: Context) : BasePushService(context) {
             if (!isEnabled) {
                 return@withContext Result.failure(IllegalStateException("API推送未启用"))
             }
-            
+
             val apiUrl = "${getString(KEY_API_URL, DEFAULT_API_URL)}/report-status"
-            
+
             if (apiUrl.isBlank()) {
                 return@withContext Result.failure(IllegalStateException("API URL未配置"))
             }
-            
+
             // 获取统计数据
             val stats = smsDatabase.getStats()
-            
+
             // 构建状态数据
             val statusData = StatusData(
                 deviceId = settingsService.getDeviceId(),
@@ -138,11 +138,11 @@ class ApiPushService(context: Context) : BasePushService(context) {
                 timestamp = System.currentTimeMillis(),
                 deviceInfo = getDeviceInfo()
             )
-            
+
             // 构建请求体
             val jsonBody = statusData.toJson()
             val requestBody = jsonBody.toRequestBody(MEDIA_TYPE.toMediaType())
-            
+
             // 构建请求
             val request = Request.Builder()
                 .url(apiUrl)
@@ -150,11 +150,11 @@ class ApiPushService(context: Context) : BasePushService(context) {
                 .header("Content-Type", MEDIA_TYPE)
                 .header("User-Agent", "SMSMonitor/${getAppVersion()}")
                 .build()
-            
+
             // 发送请求
             client.newCall(request).execute().use { response ->
                 val responseBody = response.body?.string() ?: ""
-                
+
                 if (response.isSuccessful) {
                     Timber.d("状态上报成功: $responseBody")
                     Result.success(true)
@@ -169,20 +169,20 @@ class ApiPushService(context: Context) : BasePushService(context) {
             Result.failure(e)
         }
     }
-    
+
     override suspend fun testConnection(): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
             val apiUrl = getString(KEY_API_URL, DEFAULT_API_URL)
-            
+
             if (apiUrl.isBlank()) {
                 return@withContext Result.failure(IllegalStateException("API URL未配置"))
             }
-            
+
             // 简单的连接测试
             val request = Request.Builder()
                 .url(apiUrl)
                 .build()
-            
+
             client.newCall(request).execute().use {
                 // 只要能连接上就返回成功，不管服务器返回什么状态码
                 Result.success(true)
@@ -192,7 +192,7 @@ class ApiPushService(context: Context) : BasePushService(context) {
             Result.failure(e)
         }
     }
-    
+
     override fun getConfigItems(): List<PushService.ConfigItem> {
         return listOf(
             PushService.ConfigItem(
@@ -209,11 +209,11 @@ class ApiPushService(context: Context) : BasePushService(context) {
             )
         )
     }
-    
+
     override protected fun applyConfigs(configs: Map<String, String>) {
         configs[KEY_API_URL]?.let { saveString(KEY_API_URL, it) }
     }
-    
+
     /**
      * 获取应用版本号
      */
@@ -226,7 +226,7 @@ class ApiPushService(context: Context) : BasePushService(context) {
             "unknown"
         }
     }
-    
+
     /**
      * 短信数据类
      */
@@ -249,7 +249,7 @@ class ApiPushService(context: Context) : BasePushService(context) {
             """.trimIndent()
         }
     }
-    
+
     /**
      * 状态数据类
      */

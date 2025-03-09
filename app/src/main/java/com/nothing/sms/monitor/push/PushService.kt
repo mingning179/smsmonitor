@@ -9,45 +9,45 @@ interface PushService {
      * 服务类型标识
      */
     val serviceType: String
-    
+
     /**
      * 服务名称（显示用）
      */
     val serviceName: String
-    
+
     /**
      * 服务是否已启用
      */
     val isEnabled: Boolean
-    
+
     /**
      * 推送短信内容
-     * 
+     *
      * @param sender 发送者
      * @param content 短信内容
      * @param timestamp 接收时间戳
      * @return 推送结果
      */
     suspend fun pushSMS(sender: String, content: String, timestamp: Long): Result<Boolean>
-    
+
     /**
      * 测试推送服务连接
      * @return 测试结果
      */
     suspend fun testConnection(): Result<Boolean>
-    
+
     /**
      * 获取配置项列表（用于UI显示）
      * @return 配置项列表
      */
     fun getConfigItems(): List<ConfigItem>
-    
+
     /**
      * 保存配置项
      * @param configs 配置项键值对
      */
     fun saveConfigs(configs: Map<String, String>): Boolean
-    
+
     /**
      * 配置项类
      * 用于UI展示和配置管理
@@ -60,7 +60,7 @@ interface PushService {
         val isRequired: Boolean = true, // 是否必填
         val hint: String = ""           // 输入提示
     )
-    
+
     /**
      * 配置项类型
      */

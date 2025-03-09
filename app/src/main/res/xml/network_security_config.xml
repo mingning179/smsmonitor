@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config xmlns:tools="http://schemas.android.com/tools">
     <!-- 允许所有明文流量 -->
-    <base-config cleartextTrafficPermitted="true"
+    <base-config
+        cleartextTrafficPermitted="true"
         tools:ignore="InsecureBaseConfiguration">
         <trust-anchors>
             <certificates src="system" />
