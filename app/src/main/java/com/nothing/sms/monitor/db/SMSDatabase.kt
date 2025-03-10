@@ -371,36 +371,6 @@ class SMSDatabase(context: Context) : SQLiteOpenHelper(
     }
 
     /**
-     * 获取已存在的推送记录ID
-     * 注意：此方法不再使用，由addPushRecord内部逻辑替代
-     * 保留此方法是为了兼容性，避免影响其他调用
-     */
-    private fun getExistingPushRecordId(smsId: Long, serviceType: String): Long {
-        val db = this.readableDatabase
-        var recordId = -1L
-
-        try {
-            val cursor = db.query(
-                TABLE_PUSH_RECORDS,
-                arrayOf(COLUMN_RECORD_ID),
-                "$COLUMN_SMS_ID = ? AND $COLUMN_SERVICE_TYPE = ?",
-                arrayOf(smsId.toString(), serviceType),
-                null, null, null
-            )
-
-            if (cursor.moveToFirst()) {
-                recordId = cursor.getLong(0)
-            }
-
-            cursor.close()
-            return recordId
-        } finally {
-            // 不在这里关闭数据库连接
-            // db.close()
-        }
-    }
-
-    /**
      * 更新推送记录状态
      */
     fun updatePushRecordStatus(
@@ -600,20 +570,6 @@ class SMSDatabase(context: Context) : SQLiteOpenHelper(
 
             cursor.close()
             return records
-        } finally {
-            // 不在这里关闭数据库连接
-            // db.close()
-        }
-    }
-
-    /**
-     * 删除推送记录
-     */
-    fun deletePushRecord(recordId: Long) {
-        val db = this.writableDatabase
-
-        try {
-            db.delete(TABLE_PUSH_RECORDS, "$COLUMN_RECORD_ID = ?", arrayOf(recordId.toString()))
         } finally {
             // 不在这里关闭数据库连接
             // db.close()
@@ -844,13 +800,5 @@ class SMSDatabase(context: Context) : SQLiteOpenHelper(
             // 不在这里关闭数据库连接
             // db.close()
         }
-    }
-
-    /**
-     * 根据记录ID判断是否可以重试
-     */
-    fun canRetryRecordById(recordId: Long): Boolean {
-        val record = getPushRecordById(recordId) ?: return false
-        return record.canRetry
     }
 }
