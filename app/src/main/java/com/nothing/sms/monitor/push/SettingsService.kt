@@ -3,13 +3,15 @@ package com.nothing.sms.monitor.push
 import android.content.Context
 import android.content.SharedPreferences
 import android.provider.Settings
-import java.util.concurrent.ConcurrentHashMap
+import org.json.JSONArray
+import org.json.JSONObject
+import timber.log.Timber
 
 /**
  * 通用设置服务类
  * 用于管理应用程序通用配置
  */
-class SettingsService private constructor(context: Context) {
+class SettingsService private constructor(private val appContext: Context) {
 
     companion object {
         private const val PREF_NAME = "settings_service_prefs"
@@ -18,22 +20,136 @@ class SettingsService private constructor(context: Context) {
         private const val KEY_DEVICE_ID = "device_id"
         private const val DEFAULT_STATUS_REPORT_INTERVAL = 5L
 
-        private val instances = ConcurrentHashMap<String, SettingsService>()
+        // 绑定信息相关常量
+        private const val KEY_BINDINGS = "bindings"
+        private const val MAX_BINDINGS_PER_DEVICE = 4  // 每个设备最大绑定数量
 
         /**
          * 获取SettingsService实例
+         * 注意：应只通过PushServiceManager获取，避免静态Context引用
          */
         fun getInstance(context: Context): SettingsService {
-            val appContext = context.applicationContext
-            return instances.computeIfAbsent(PREF_NAME) {
-                SettingsService(appContext)
-            }
+            return SettingsService(context.applicationContext)
         }
     }
 
     private val prefs: SharedPreferences =
-        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-    private val appContext = context.applicationContext
+        appContext.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+
+    /**
+     * 绑定信息数据类
+     */
+    data class BindingInfo(
+        val phoneNumber: String,      // 绑定手机号
+        val deviceId: String,         // 设备唯一标识
+        val subscriptionId: Int,      // SIM卡订阅ID
+        val bindTime: Long,           // 绑定时间
+        val lastVerifyTime: Long,     // 最后验证时间
+        val verifyCount: Int          // 验证次数，用于限制频率
+    ) {
+        fun toJson(): JSONObject {
+            return JSONObject().apply {
+                put("phoneNumber", phoneNumber)
+                put("deviceId", deviceId)
+                put("subscriptionId", subscriptionId)
+                put("bindTime", bindTime)
+                put("lastVerifyTime", lastVerifyTime)
+                put("verifyCount", verifyCount)
+            }
+        }
+
+        companion object {
+            fun fromJson(json: JSONObject): BindingInfo {
+                return BindingInfo(
+                    phoneNumber = json.getString("phoneNumber"),
+                    deviceId = json.getString("deviceId"),
+                    subscriptionId = json.getInt("subscriptionId"),
+                    bindTime = json.getLong("bindTime"),
+                    lastVerifyTime = json.getLong("lastVerifyTime"),
+                    verifyCount = json.getInt("verifyCount")
+                )
+            }
+        }
+    }
+
+    /**
+     * 保存绑定信息
+     */
+    fun saveBinding(bindingInfo: BindingInfo) {
+        val bindings = getBindings().toMutableList()
+
+        // 检查是否已达到最大绑定数量
+        if (bindings.size >= MAX_BINDINGS_PER_DEVICE && !bindings.any { it.subscriptionId == bindingInfo.subscriptionId }) {
+            throw IllegalStateException("已达到最大绑定数量限制: $MAX_BINDINGS_PER_DEVICE")
+        }
+
+        // 更新或添加绑定信息
+        val index = bindings.indexOfFirst { it.subscriptionId == bindingInfo.subscriptionId }
+        if (index != -1) {
+            bindings[index] = bindingInfo
+        } else {
+            bindings.add(bindingInfo)
+        }
+
+        // 保存所有绑定信息
+        saveBindings(bindings)
+        Timber.d("已保存绑定信息: $bindingInfo")
+    }
+
+    /**
+     * 获取所有绑定信息
+     */
+    fun getBindings(): List<BindingInfo> {
+        val bindingsJson = prefs.getString(KEY_BINDINGS, "[]") ?: "[]"
+        return try {
+            val jsonArray = JSONArray(bindingsJson)
+            List(jsonArray.length()) { i ->
+                BindingInfo.fromJson(jsonArray.getJSONObject(i))
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "解析绑定信息失败")
+            emptyList()
+        }
+    }
+
+    /**
+     * 获取指定订阅ID的绑定信息
+     */
+    fun getBindingBySubscriptionId(subscriptionId: Int): BindingInfo? {
+        return getBindings().find { it.subscriptionId == subscriptionId }
+    }
+
+    /**
+     * 移除指定订阅ID的绑定信息
+     */
+    fun removeBindingBySubscriptionId(subscriptionId: Int) {
+        val bindings = getBindings().filterNot { it.subscriptionId == subscriptionId }
+        saveBindings(bindings)
+        Timber.d("已移除订阅ID $subscriptionId 的绑定信息")
+    }
+
+    /**
+     * 更新验证次数和最后验证时间
+     */
+    fun updateVerifyInfo(subscriptionId: Int, verifyCount: Int) {
+        val binding = getBindingBySubscriptionId(subscriptionId) ?: return
+        saveBinding(
+            binding.copy(
+                verifyCount = verifyCount,
+                lastVerifyTime = System.currentTimeMillis()
+            )
+        )
+        Timber.d("已更新订阅ID $subscriptionId 的验证信息: count=$verifyCount")
+    }
+
+    /**
+     * 保存所有绑定信息
+     */
+    private fun saveBindings(bindings: List<BindingInfo>) {
+        val jsonArray = JSONArray()
+        bindings.forEach { jsonArray.put(it.toJson()) }
+        prefs.edit().putString(KEY_BINDINGS, jsonArray.toString()).apply()
+    }
 
     /**
      * 获取设备ID

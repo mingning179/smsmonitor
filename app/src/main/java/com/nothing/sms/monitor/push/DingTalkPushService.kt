@@ -14,7 +14,10 @@ import java.util.concurrent.TimeUnit
 /**
  * 钉钉推送服务实现类
  */
-class DingTalkPushService(context: Context) : BasePushService(context) {
+class DingTalkPushService(
+    context: Context,
+    private val settingsService: SettingsService = SettingsService.getInstance(context)
+) : BasePushService(context) {
 
     companion object {
         // 配置项键名
@@ -32,6 +35,7 @@ class DingTalkPushService(context: Context) : BasePushService(context) {
         
         设备信息: {device}
         设备ID: {device_id}
+        SIM卡订阅: {subscription_id}
         """
     }
 
@@ -43,8 +47,6 @@ class DingTalkPushService(context: Context) : BasePushService(context) {
             .writeTimeout(10, TimeUnit.SECONDS)
             .build()
     }
-
-    private val settingsService by lazy { SettingsService.getInstance(context) }
 
     init {
         // 确保消息模板存在
@@ -60,7 +62,8 @@ class DingTalkPushService(context: Context) : BasePushService(context) {
     override suspend fun pushSMS(
         sender: String,
         content: String,
-        timestamp: Long
+        timestamp: Long,
+        subscriptionId: Int
     ): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
             // 检查是否启用
@@ -84,14 +87,15 @@ class DingTalkPushService(context: Context) : BasePushService(context) {
 
             // 生成消息内容
             val messageTemplate = getString(KEY_MESSAGE_TEMPLATE, DEFAULT_MESSAGE_TEMPLATE)
-            val message = formatMessage(messageTemplate, sender, content, timestamp)
+            val message = formatMessage(messageTemplate, sender, content, timestamp, subscriptionId)
 
-            // 构建请求体
+            // 构建请求体，处理特殊字符
+            val escapedMessage = message.toJson()
             val jsonBody = """
                 {
                     "msgtype": "text",
                     "text": {
-                        "content": ${message.toJson()}
+                        "content": "${escapedMessage}"
                     }
                 }
             """.trimIndent()
@@ -203,7 +207,7 @@ class DingTalkPushService(context: Context) : BasePushService(context) {
                 label = "消息模板",
                 value = getString(KEY_MESSAGE_TEMPLATE, DEFAULT_MESSAGE_TEMPLATE),
                 type = PushService.ConfigType.TEXTAREA,
-                hint = "支持的变量: {sender}, {time}, {content}, {device}, {device_id}"
+                hint = "支持的变量: {sender}, {time}, {content}, {device}, {device_id}, {subscription_id}"
             )
         )
     }
@@ -261,7 +265,8 @@ class DingTalkPushService(context: Context) : BasePushService(context) {
         template: String,
         sender: String,
         content: String,
-        timestamp: Long
+        timestamp: Long,
+        subscriptionId: Int
     ): String {
         val time = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
             .format(java.util.Date(timestamp))
@@ -272,17 +277,18 @@ class DingTalkPushService(context: Context) : BasePushService(context) {
             .replace("{content}", content)
             .replace("{device}", getDeviceInfo())
             .replace("{device_id}", settingsService.getDeviceId())
+            .replace("{subscription_id}", subscriptionId.toString())
     }
 
     /**
      * 将字符串转换为JSON格式（处理转义字符）
      */
     private fun String.toJson(): String {
-        return "\"" + this
+        return this
             .replace("\\", "\\\\")
             .replace("\"", "\\\"")
             .replace("\n", "\\n")
             .replace("\r", "\\r")
-            .replace("\t", "\\t") + "\""
+            .replace("\t", "\\t")
     }
 }

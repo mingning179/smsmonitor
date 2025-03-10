@@ -22,6 +22,20 @@ class PushServiceManager private constructor(private val context: Context) {
 
     // 已注册的推送服务列表
     private val pushServices = mutableMapOf<String, PushService>()
+    
+    // 常用服务的引用
+    private var _apiPushService: ApiPushService? = null
+    private var _settingsService: SettingsService? = null
+    
+    // 公开的API获取服务实例
+    val apiPushService: ApiPushService
+        get() = _apiPushService ?: (getService("api") as? ApiPushService)
+            ?.also { _apiPushService = it }
+            ?: throw IllegalStateException("ApiPushService未注册")
+    
+    val settingsService: SettingsService
+        get() = _settingsService ?: SettingsService.getInstance(context)
+            .also { _settingsService = it }
 
     init {
         // 注册内置的推送服务
@@ -32,14 +46,19 @@ class PushServiceManager private constructor(private val context: Context) {
      * 注册内置的推送服务
      */
     private fun registerBuiltInServices() {
+        // 预先创建SettingsService实例
+        _settingsService = SettingsService.getInstance(context)
+        
         // 注册API推送服务（默认启用）
-        val apiService = ApiPushService(context)
+        val apiService = ApiPushService(context, _settingsService!!)
         // 默认启用API推送
         apiService.saveConfigs(mapOf("enabled" to "true"))
         registerPushService(apiService)
+        // 保存实例引用
+        _apiPushService = apiService
 
         // 注册钉钉推送服务（也默认启用）
-        val dingTalkService = DingTalkPushService(context)
+        val dingTalkService = DingTalkPushService(context, _settingsService!!)
         registerPushService(dingTalkService)
 
         // 这里可以注册更多内置的推送服务
@@ -77,15 +96,28 @@ class PushServiceManager private constructor(private val context: Context) {
     }
 
     /**
-     * 推送消息到所有已启用的服务
+     * 获取指定类型的推送服务并转换为目标类型
      */
-    suspend fun pushToAll(sender: String, content: String, timestamp: Long) {
-        // 获取已启用的服务
+    @Suppress("UNCHECKED_CAST")
+    fun <T : PushService> getServiceTyped(serviceType: String): T? {
+        return pushServices[serviceType] as? T
+    }
+
+    /**
+     * 获取钉钉推送服务
+     */
+    fun getDingTalkPushService(): DingTalkPushService? {
+        return getServiceTyped("dingtalk")
+    }
+
+    /**
+     * 向所有启用的推送服务发送短信
+     */
+    suspend fun pushSMS(sender: String, content: String, timestamp: Long, subscriptionId: Int = 0) {
         val enabledServices = getEnabledServices()
 
-        // 没有启用的服务，直接返回
         if (enabledServices.isEmpty()) {
-            Timber.d("没有启用的推送服务")
+            Timber.w("没有启用的推送服务")
             return
         }
 
@@ -93,7 +125,7 @@ class PushServiceManager private constructor(private val context: Context) {
         for (service in enabledServices) {
             try {
                 Timber.d("正在推送到 ${service.serviceName}")
-                service.pushSMS(sender, content, timestamp)
+                service.pushSMS(sender, content, timestamp, subscriptionId)
                     .onSuccess {
                         Timber.d("推送到 ${service.serviceName} 成功")
                     }
@@ -101,7 +133,7 @@ class PushServiceManager private constructor(private val context: Context) {
                         Timber.e(e, "推送到 ${service.serviceName} 失败")
                     }
             } catch (e: Exception) {
-                Timber.e(e, "推送到 ${service.serviceName} 时出错")
+                Timber.e(e, "推送到 ${service.serviceName} 时发生异常: ${e.message}")
             }
         }
     }

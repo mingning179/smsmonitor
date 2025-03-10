@@ -41,6 +41,7 @@ class SMSDatabase(context: Context) : SQLiteOpenHelper(
         const val COLUMN_STATUS = "status"
         const val COLUMN_RETRY_COUNT = "retry_count"
         const val COLUMN_LAST_RETRY = "last_retry"
+        const val COLUMN_SUBSCRIPTION_ID = "subscription_id"  // 修改：SIM卡订阅ID
 
         // 推送记录表
         const val TABLE_PUSH_RECORDS = "push_records"
@@ -74,7 +75,8 @@ class SMSDatabase(context: Context) : SQLiteOpenHelper(
                 $COLUMN_TIMESTAMP INTEGER NOT NULL,
                 $COLUMN_STATUS INTEGER NOT NULL DEFAULT ${STATUS_PENDING},
                 $COLUMN_RETRY_COUNT INTEGER NOT NULL DEFAULT 0,
-                $COLUMN_LAST_RETRY INTEGER NOT NULL DEFAULT 0
+                $COLUMN_LAST_RETRY INTEGER NOT NULL DEFAULT 0,
+                $COLUMN_SUBSCRIPTION_ID INTEGER NOT NULL DEFAULT 0
             )
         """.trimIndent()
 
@@ -136,8 +138,9 @@ class SMSDatabase(context: Context) : SQLiteOpenHelper(
                 val timestamp = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_TIMESTAMP))
                 val status = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_STATUS))
                 val retryCount = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_RETRY_COUNT))
+                val subscriptionId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_SUBSCRIPTION_ID))
 
-                messages.add(SMS(id, sender, content, timestamp, status))
+                messages.add(SMS(id, sender, content, timestamp, status, subscriptionId))
 
                 // 增加重试次数
                 updateRetryCount(id, retryCount + 1)
@@ -286,6 +289,13 @@ class SMSDatabase(context: Context) : SQLiteOpenHelper(
      * 保存短信
      */
     fun saveSMS(sender: String, content: String, timestamp: Long): Long {
+        return saveSMS(sender, content, timestamp, 0)
+    }
+
+    /**
+     * 保存短信（带SIM卡槽信息）
+     */
+    fun saveSMS(sender: String, content: String, timestamp: Long, subscriptionId: Int): Long {
         val db = this.writableDatabase
 
         try {
@@ -294,6 +304,7 @@ class SMSDatabase(context: Context) : SQLiteOpenHelper(
                 put(COLUMN_CONTENT, content)
                 put(COLUMN_TIMESTAMP, timestamp)
                 put(COLUMN_STATUS, STATUS_PENDING)
+                put(COLUMN_SUBSCRIPTION_ID, subscriptionId)
             }
 
             return db.insert(TABLE_SMS, null, values)
@@ -647,7 +658,8 @@ class SMSDatabase(context: Context) : SQLiteOpenHelper(
         val sender: String,
         val content: String,
         val timestamp: Long,
-        val status: Int
+        val status: Int,
+        val subscriptionId: Int = 0   // 添加SIM卡槽字段，默认为0
     )
 
     /**
@@ -672,7 +684,8 @@ class SMSDatabase(context: Context) : SQLiteOpenHelper(
                     sender = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_SENDER)),
                     content = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_CONTENT)),
                     timestamp = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_TIMESTAMP)),
-                    status = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_STATUS))
+                    status = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_STATUS)),
+                    subscriptionId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_SUBSCRIPTION_ID))
                 )
             }
 

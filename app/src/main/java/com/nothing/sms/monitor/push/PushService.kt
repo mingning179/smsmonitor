@@ -21,14 +21,20 @@ interface PushService {
     val isEnabled: Boolean
 
     /**
-     * 推送短信内容
+     * 推送短信内容（带SIM卡订阅ID）
      *
      * @param sender 发送者
      * @param content 短信内容
      * @param timestamp 接收时间戳
+     * @param subscriptionId SIM卡订阅ID
      * @return 推送结果
      */
-    suspend fun pushSMS(sender: String, content: String, timestamp: Long): Result<Boolean>
+    suspend fun pushSMS(
+        sender: String,
+        content: String,
+        timestamp: Long,
+        subscriptionId: Int
+    ): Result<Boolean>
 
     /**
      * 测试推送服务连接

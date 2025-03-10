@@ -21,7 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.nothing.sms.monitor.push.SettingsService
+import com.nothing.sms.monitor.push.PushServiceManager
 import kotlinx.coroutines.launch
 
 /**
@@ -32,7 +32,8 @@ import kotlinx.coroutines.launch
 fun StatusReportSettingCard() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val settingsService = remember { SettingsService.getInstance(context) }
+    val pushServiceManager = remember { PushServiceManager.getInstance(context) }
+    val settingsService = remember { pushServiceManager.settingsService }
 
     var statusReportInterval by remember {
         mutableStateOf(settingsService.getStatusReportInterval().toString())

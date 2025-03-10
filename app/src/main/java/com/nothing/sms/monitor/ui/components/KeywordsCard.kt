@@ -52,7 +52,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
-import com.nothing.sms.monitor.push.SettingsService
+import com.nothing.sms.monitor.push.PushServiceManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -63,7 +63,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun KeywordsCard() {
     val context = LocalContext.current
-    val settingsService = remember { SettingsService.getInstance(context) }
+    val pushServiceManager = remember { PushServiceManager.getInstance(context) }
+    val settingsService = remember { pushServiceManager.settingsService }
     val coroutineScope = rememberCoroutineScope()
     val keyboardController = LocalSoftwareKeyboardController.current
 

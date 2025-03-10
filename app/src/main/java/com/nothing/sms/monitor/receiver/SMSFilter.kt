@@ -1,7 +1,7 @@
 package com.nothing.sms.monitor.receiver
 
 import android.content.Context
-import com.nothing.sms.monitor.push.SettingsService
+import com.nothing.sms.monitor.push.PushServiceManager
 import timber.log.Timber
 
 /**
@@ -10,7 +10,8 @@ import timber.log.Timber
  */
 class SMSFilter(context: Context) {
 
-    private val settingsService = SettingsService.getInstance(context)
+    private val pushServiceManager = PushServiceManager.getInstance(context)
+    private val settingsService = pushServiceManager.settingsService
 
     /**
      * 判断短信是否符合过滤条件

@@ -8,6 +8,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
 import timber.log.Timber
 import java.util.concurrent.TimeUnit
 
@@ -15,18 +16,20 @@ import java.util.concurrent.TimeUnit
  * API推送服务实现类
  * 负责将短信内容推送到配置的API服务器
  */
-class ApiPushService(context: Context) : BasePushService(context) {
+class ApiPushService(
+    context: Context,
+    private val settingsService: SettingsService = SettingsService.getInstance(context)
+) : BasePushService(context), BindingService {
 
     companion object {
-        private const val KEY_API_URL = "api_url"
-        private const val KEY_ENABLED = "enabled"
-        private const val DEFAULT_API_URL = "http://192.168.10.38:8888"
-        private const val DEFAULT_TIMEOUT = 30L // 默认超时时间（秒）
-        private const val MEDIA_TYPE = "application/json; charset=utf-8"
+        const val KEY_API_URL = "api_url"
+        const val KEY_ENABLED = "enabled"
+        const val DEFAULT_API_URL = "http://localhost:8080/api"
+        const val DEFAULT_TIMEOUT = 30L // 默认超时时间（秒）
+        const val MEDIA_TYPE = "application/json; charset=utf-8"
     }
 
     private val smsDatabase by lazy { SMSDatabase(context) }
-    private val settingsService by lazy { SettingsService.getInstance(context) }
 
     private val client: OkHttpClient by lazy {
         OkHttpClient.Builder()
@@ -46,12 +49,13 @@ class ApiPushService(context: Context) : BasePushService(context) {
 
     override val serviceType: String = "api"
 
-    override val serviceName: String = "API服务器"
+    override val serviceName: String = "API推送"
 
     override suspend fun pushSMS(
         sender: String,
         content: String,
-        timestamp: Long
+        timestamp: Long,
+        subscriptionId: Int
     ): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
             // 检查服务是否启用
@@ -72,7 +76,8 @@ class ApiPushService(context: Context) : BasePushService(context) {
                 content = content,
                 timestamp = timestamp,
                 deviceInfo = deviceInfo,
-                deviceId = settingsService.getDeviceId()
+                deviceId = settingsService.getDeviceId(),
+                subscriptionId = subscriptionId
             )
 
             // 构建请求体
@@ -235,7 +240,8 @@ class ApiPushService(context: Context) : BasePushService(context) {
         val content: String,       // 短信内容
         val timestamp: Long,       // 接收时间
         val deviceInfo: String,    // 设备信息
-        val deviceId: String       // 设备唯一ID
+        val deviceId: String,      // 设备唯一ID
+        val subscriptionId: Int     // 订阅ID
     ) {
         fun toJson(): String {
             return """
@@ -244,7 +250,8 @@ class ApiPushService(context: Context) : BasePushService(context) {
                     "content": "$content",
                     "timestamp": $timestamp,
                     "deviceInfo": "$deviceInfo",
-                    "deviceId": "$deviceId"
+                    "deviceId": "$deviceId",
+                    "subscriptionId": $subscriptionId
                 }
             """.trimIndent()
         }
@@ -274,6 +281,133 @@ class ApiPushService(context: Context) : BasePushService(context) {
                     "deviceInfo": "$deviceInfo"
                 }
             """.trimIndent()
+        }
+    }
+
+    /**
+     * 发送验证码
+     */
+    override suspend fun sendVerificationCode(
+        phoneNumber: String,
+        subscriptionId: Int
+    ): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            // 检查服务是否启用
+            if (!isEnabled) {
+                return@withContext Result.failure(IllegalStateException("API推送未启用"))
+            }
+
+            val apiUrl = "${getString(KEY_API_URL, DEFAULT_API_URL)}/send-code"
+
+            // 准备请求数据
+            val requestData = JSONObject().apply {
+                put("phoneNumber", phoneNumber)
+                put("subscriptionId", subscriptionId)
+                put("deviceId", settingsService.getDeviceId())
+                put("deviceInfo", getDeviceInfo())
+            }
+
+            // 构建请求
+            val request = Request.Builder()
+                .url(apiUrl)
+                .post(requestData.toString().toRequestBody(MEDIA_TYPE.toMediaType()))
+                .header("Content-Type", MEDIA_TYPE)
+                .build()
+
+            // 发送请求
+            client.newCall(request).execute().use { response ->
+                val responseBody = response.body?.string() ?: ""
+
+                if (response.isSuccessful) {
+                    val jsonResponse = JSONObject(responseBody)
+                    val success = jsonResponse.optBoolean("success", false)
+                    if (success) {
+                        Timber.d("验证码发送成功")
+                        Result.success(true)
+                    } else {
+                        val message = jsonResponse.optString("message", "未知错误")
+                        Timber.e("验证码发送失败: $message")
+                        Result.failure(Exception(message))
+                    }
+                } else {
+                    val error = "验证码发送失败: ${response.code}, $responseBody"
+                    Timber.e(error)
+                    Result.failure(Exception(error))
+                }
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "发送验证码时出错")
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * 验证并绑定
+     */
+    override suspend fun verifyAndBind(
+        phoneNumber: String,
+        code: String,
+        subscriptionId: Int
+    ): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            // 检查服务是否启用
+            if (!isEnabled) {
+                return@withContext Result.failure(IllegalStateException("API推送未启用"))
+            }
+
+            val apiUrl = "${getString(KEY_API_URL, DEFAULT_API_URL)}/verify-bind"
+
+            // 准备请求数据
+            val requestData = JSONObject().apply {
+                put("phoneNumber", phoneNumber)
+                put("code", code)
+                put("subscriptionId", subscriptionId)
+                put("deviceId", settingsService.getDeviceId())
+                put("deviceInfo", getDeviceInfo())
+            }
+
+            // 构建请求
+            val request = Request.Builder()
+                .url(apiUrl)
+                .post(requestData.toString().toRequestBody(MEDIA_TYPE.toMediaType()))
+                .header("Content-Type", MEDIA_TYPE)
+                .build()
+
+            // 发送请求
+            client.newCall(request).execute().use { response ->
+                val responseBody = response.body?.string() ?: ""
+
+                if (response.isSuccessful) {
+                    val jsonResponse = JSONObject(responseBody)
+                    val success = jsonResponse.optBoolean("success", false)
+                    if (success) {
+                        // 验证成功，保存绑定信息
+                        settingsService.saveBinding(
+                            SettingsService.BindingInfo(
+                                phoneNumber = phoneNumber,
+                                deviceId = settingsService.getDeviceId(),
+                                subscriptionId = subscriptionId,
+                                bindTime = System.currentTimeMillis(),
+                                lastVerifyTime = System.currentTimeMillis(),
+                                verifyCount = 0
+                            )
+                        )
+                        Timber.d("手机号绑定成功")
+                        Result.success(true)
+                    } else {
+                        val message = jsonResponse.optString("message", "未知错误")
+                        Timber.e("手机号绑定失败: $message")
+                        Result.failure(Exception(message))
+                    }
+                } else {
+                    val error = "手机号绑定失败: ${response.code}, $responseBody"
+                    Timber.e(error)
+                    Result.failure(Exception(error))
+                }
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "验证绑定时出错")
+            Result.failure(e)
         }
     }
 } 

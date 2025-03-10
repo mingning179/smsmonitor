@@ -113,16 +113,17 @@ class SMSProcessingService : Service() {
                     val sender = it.getStringExtra("sender")
                     val body = it.getStringExtra("body")
                     val timestamp = it.getLongExtra("timestamp", System.currentTimeMillis())
+                    val subscriptionId = it.getIntExtra("subscriptionId", 0)  // 获取订阅ID，默认为0
 
                     if (!sender.isNullOrEmpty() && !body.isNullOrEmpty()) {
-            serviceScope.launch {
-                processIncomingSMS(sender, body, timestamp)
+                        serviceScope.launch {
+                            processIncomingSMS(sender, body, timestamp, subscriptionId)
                         }
                     }
                 }
             }
         }
-        
+
         // 如果服务被杀死，自动重启
         return START_STICKY
     }
@@ -131,10 +132,15 @@ class SMSProcessingService : Service() {
         return null
     }
 
-    private suspend fun processIncomingSMS(sender: String, body: String, timestamp: Long) {
+    private suspend fun processIncomingSMS(
+        sender: String,
+        body: String,
+        timestamp: Long,
+        subscriptionId: Int
+    ) {
         try {
             // 保存到数据库，获取SMS ID
-            val smsId = smsDatabase.saveSMS(sender, body, timestamp)
+            val smsId = smsDatabase.saveSMS(sender, body, timestamp, subscriptionId)
 
             // 获取启用的推送服务
             val enabledServices = pushServiceManager.getEnabledServices()
@@ -146,9 +152,9 @@ class SMSProcessingService : Service() {
                 Timber.i("没有启用的推送服务，短信已保存但不会推送")
             } else {
                 // 推送到所有已启用的推送服务
-                pushSMSToServices(smsId, sender, body, timestamp)
+                pushSMSToServices(smsId, sender, body, timestamp, subscriptionId)
             }
-            
+
             // 清理旧记录
             withContext(Dispatchers.IO) {
                 smsDatabase.cleanupOldRecords()
@@ -160,7 +166,7 @@ class SMSProcessingService : Service() {
             Timber.e(e, "处理短信时出错")
         }
     }
-    
+
     /**
      * 推送短信内容到所有已启用的推送服务
      */
@@ -168,7 +174,8 @@ class SMSProcessingService : Service() {
         smsId: Long,
         sender: String,
         body: String,
-        timestamp: Long
+        timestamp: Long,
+        subscriptionId: Int
     ) {
         val enabledServices = pushServiceManager.getEnabledServices()
 
@@ -191,7 +198,7 @@ class SMSProcessingService : Service() {
                 continue
             }
 
-            pushToService(smsId, service, sender, body, timestamp)
+            pushToService(smsId, service, sender, body, timestamp, subscriptionId)
         }
     }
 
@@ -203,12 +210,13 @@ class SMSProcessingService : Service() {
         service: PushService,
         sender: String,
         content: String,
-        timestamp: Long
+        timestamp: Long,
+        subscriptionId: Int
     ) {
         try {
             Timber.d("正在推送到 ${service.serviceName}")
 
-            val result = service.pushSMS(sender, content, timestamp)
+            val result = service.pushSMS(sender, content, timestamp, subscriptionId)
 
             result.fold(
                 onSuccess = {
@@ -291,7 +299,7 @@ class SMSProcessingService : Service() {
                 Timber.i("正在重试推送记录 #${record.id}，SMS ID: ${record.smsId}，服务: ${record.serviceName}，重试次数: $currentRetry")
 
                 // 重新推送
-                val result = service.pushSMS(sms.sender, sms.content, sms.timestamp)
+                val result = service.pushSMS(sms.sender, sms.content, sms.timestamp, sms.subscriptionId)
 
                 result.fold(
                     onSuccess = {
@@ -352,14 +360,14 @@ class SMSProcessingService : Service() {
 
                     // 延迟到下一次报告
                     delay(TimeUnit.MINUTES.toMillis(interval))
-        } catch (e: Exception) {
+                } catch (e: Exception) {
                     Timber.e(e, "状态报告任务异常")
                     delay(TimeUnit.MINUTES.toMillis(DEFAULT_RETRY_CHECK_INTERVAL))
                 }
             }
         }
     }
-    
+
     private fun startRetryJob() {
         retryJob?.cancel()
         retryJob = serviceScope.launch {
@@ -410,7 +418,7 @@ class SMSProcessingService : Service() {
 
             try {
                 // 执行推送
-                val result = service.pushSMS(sms.sender, sms.content, sms.timestamp)
+                val result = service.pushSMS(sms.sender, sms.content, sms.timestamp, sms.subscriptionId)
 
                 result.fold(
                     onSuccess = {
@@ -461,7 +469,7 @@ class SMSProcessingService : Service() {
 
                     for (record in pendingWithMaxRetries) {
                         if (!isActive) break
-                        
+
                         // 更新为失败状态
                         Timber.w("推送记录 #${record.id} 处于待处理状态但已达到最大重试次数，标记为失败")
                         smsDatabase.updatePushRecordStatus(
@@ -556,7 +564,14 @@ class SMSProcessingService : Service() {
                     for (service in servicesToPush) {
                         if (!isActive) break
 
-                        pushToService(sms.id, service, sms.sender, sms.content, sms.timestamp)
+                        pushToService(
+                            sms.id,
+                            service,
+                            sms.sender,
+                            sms.content,
+                            sms.timestamp,
+                            sms.subscriptionId
+                        )
                         // 避免过快处理，每个服务之间稍作延迟
                         delay(500)
                     }
@@ -613,7 +628,7 @@ class SMSProcessingService : Service() {
     private fun buildStatsMessage(stats: SMSDatabase.SMSStats): String {
         return "总计: ${stats.total} | 成功: ${stats.success} | 失败: ${stats.failed} | 待处理: ${stats.pending} | 部分成功: ${stats.partialSuccess}"
     }
-    
+
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
@@ -623,12 +638,12 @@ class SMSProcessingService : Service() {
             ).apply {
                 description = CHANNEL_DESCRIPTION
             }
-            
+
             val notificationManager = getSystemService(NotificationManager::class.java)
             notificationManager.createNotificationChannel(channel)
         }
     }
-    
+
     private fun createNotification(content: String): android.app.Notification {
         val pendingIntent = PendingIntent.getActivity(
             this,
@@ -636,7 +651,7 @@ class SMSProcessingService : Service() {
             Intent(this, MainActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE
         )
-        
+
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("短信监控服务")
             .setContentText(content)
@@ -686,7 +701,7 @@ class SMSProcessingService : Service() {
             }
         }
     }
-    
+
     override fun onDestroy() {
         super.onDestroy()
 

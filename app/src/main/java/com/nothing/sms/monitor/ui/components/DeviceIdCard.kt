@@ -21,7 +21,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.nothing.sms.monitor.push.SettingsService
+import com.nothing.sms.monitor.push.PushServiceManager
 
 /**
  * 设备ID卡片
@@ -30,7 +30,8 @@ import com.nothing.sms.monitor.push.SettingsService
 @Composable
 fun DeviceIdCard() {
     val context = LocalContext.current
-    val settingsService = remember { SettingsService.getInstance(context) }
+    val pushServiceManager = remember { PushServiceManager.getInstance(context) }
+    val settingsService = remember { pushServiceManager.settingsService }
     val deviceId = remember { settingsService.getDeviceId() }
 
     CommonCard(

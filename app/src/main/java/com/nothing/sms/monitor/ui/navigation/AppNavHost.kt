@@ -77,7 +77,7 @@ fun AppNavHost(
                             try {
                                 // 清理回退栈到起始页面
                                 navController.popBackStack(
-                                    navController.graph.findStartDestination().id, 
+                                    navController.graph.findStartDestination().id,
                                     inclusive = false
                                 )
                                 // 如果目标不在回退栈中，则导航到目标
