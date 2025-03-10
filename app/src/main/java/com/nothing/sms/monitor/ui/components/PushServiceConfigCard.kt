@@ -162,7 +162,7 @@ fun PushServiceConfigCard(service: PushService) {
                                     },
                                     label = { Text(item.label) },
                                     modifier = Modifier.fillMaxWidth(),
-                                    singleLine = item.type != PushService.ConfigType.TEXTAREA,
+                                    singleLine = true,
                                     placeholder = { Text(item.hint) }
                                 )
                             }

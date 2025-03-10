@@ -129,20 +129,6 @@ class SettingsService private constructor(private val appContext: Context) {
     }
 
     /**
-     * 更新验证次数和最后验证时间
-     */
-    fun updateVerifyInfo(subscriptionId: Int, verifyCount: Int) {
-        val binding = getBindingBySubscriptionId(subscriptionId) ?: return
-        saveBinding(
-            binding.copy(
-                verifyCount = verifyCount,
-                lastVerifyTime = System.currentTimeMillis()
-            )
-        )
-        Timber.d("已更新订阅ID $subscriptionId 的验证信息: count=$verifyCount")
-    }
-
-    /**
      * 保存所有绑定信息
      */
     private fun saveBindings(bindings: List<BindingInfo>) {
@@ -172,8 +158,7 @@ class SettingsService private constructor(private val appContext: Context) {
      */
     private fun getSystemUniqueId(): String {
         // 获取Android ID作为基础
-        val androidId =
-            Settings.Secure.getString(appContext.contentResolver, Settings.Secure.ANDROID_ID)
+        val androidId = Settings.Secure.getString(appContext.contentResolver, Settings.Secure.ANDROID_ID)
 
         // 如果Android ID无效或为null，使用备用标识符
         if (androidId.isNullOrBlank() || androidId == "9774d56d682e549c") { // 9774d56d682e549c是模拟器常见ID

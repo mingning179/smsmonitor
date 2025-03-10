@@ -215,7 +215,7 @@ class DingTalkPushService(
     /**
      * 实现父类的抽象方法，用于保存配置
      */
-    override protected fun applyConfigs(configs: Map<String, String>) {
+    override fun applyConfigs(configs: Map<String, String>) {
         configs[KEY_WEBHOOK_URL]?.let { saveString(KEY_WEBHOOK_URL, it) }
         configs[KEY_SECRET]?.let { saveString(KEY_SECRET, it) }
         configs[KEY_MESSAGE_TEMPLATE]?.let {

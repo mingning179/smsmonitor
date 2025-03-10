@@ -215,7 +215,7 @@ class ApiPushService(
         )
     }
 
-    override protected fun applyConfigs(configs: Map<String, String>) {
+    override fun applyConfigs(configs: Map<String, String>) {
         configs[KEY_API_URL]?.let { saveString(KEY_API_URL, it) }
     }
 

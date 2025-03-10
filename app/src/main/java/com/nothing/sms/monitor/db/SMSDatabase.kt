@@ -286,14 +286,7 @@ class SMSDatabase(context: Context) : SQLiteOpenHelper(
     }
 
     /**
-     * 保存短信
-     */
-    fun saveSMS(sender: String, content: String, timestamp: Long): Long {
-        return saveSMS(sender, content, timestamp, 0)
-    }
-
-    /**
-     * 保存短信（带SIM卡槽信息）
+     * 保存短信（带SIM卡订阅ID）
      */
     fun saveSMS(sender: String, content: String, timestamp: Long, subscriptionId: Int): Long {
         val db = this.writableDatabase
@@ -659,7 +652,7 @@ class SMSDatabase(context: Context) : SQLiteOpenHelper(
         val content: String,
         val timestamp: Long,
         val status: Int,
-        val subscriptionId: Int = 0   // 添加SIM卡槽字段，默认为0
+        val subscriptionId: Int = 0
     )
 
     /**

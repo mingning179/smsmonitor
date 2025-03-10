@@ -94,47 +94,4 @@ class PushServiceManager private constructor(private val context: Context) {
     fun getService(serviceType: String): PushService? {
         return pushServices[serviceType]
     }
-
-    /**
-     * 获取指定类型的推送服务并转换为目标类型
-     */
-    @Suppress("UNCHECKED_CAST")
-    fun <T : PushService> getServiceTyped(serviceType: String): T? {
-        return pushServices[serviceType] as? T
-    }
-
-    /**
-     * 获取钉钉推送服务
-     */
-    fun getDingTalkPushService(): DingTalkPushService? {
-        return getServiceTyped("dingtalk")
-    }
-
-    /**
-     * 向所有启用的推送服务发送短信
-     */
-    suspend fun pushSMS(sender: String, content: String, timestamp: Long, subscriptionId: Int = 0) {
-        val enabledServices = getEnabledServices()
-
-        if (enabledServices.isEmpty()) {
-            Timber.w("没有启用的推送服务")
-            return
-        }
-
-        // 向每个启用的服务推送消息
-        for (service in enabledServices) {
-            try {
-                Timber.d("正在推送到 ${service.serviceName}")
-                service.pushSMS(sender, content, timestamp, subscriptionId)
-                    .onSuccess {
-                        Timber.d("推送到 ${service.serviceName} 成功")
-                    }
-                    .onFailure { e ->
-                        Timber.e(e, "推送到 ${service.serviceName} 失败")
-                    }
-            } catch (e: Exception) {
-                Timber.e(e, "推送到 ${service.serviceName} 时发生异常: ${e.message}")
-            }
-        }
-    }
-} 
+}

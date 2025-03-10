@@ -152,7 +152,7 @@ fun BindingCard() {
     showDeleteConfirmDialog?.let { binding ->
         ConfirmationDialog(
             title = "删除绑定",
-            message = "确定要删除手机号 ${binding.phoneNumber} (SIM${binding.subscriptionId + 1}) 的绑定吗？",
+            message = "确定要删除手机号 ${binding.phoneNumber} (SIM${binding.subscriptionId}) 的绑定吗？",
             onConfirm = {
                 coroutineScope.launch {
                     settingsService.removeBindingBySubscriptionId(binding.subscriptionId)
@@ -219,23 +219,18 @@ private fun VerificationDialog(
     // 监听接收到的验证码
     val lastReceivedCode by VerificationCodeReceiver.lastReceivedCode.collectAsState()
 
-    // 自动填充验证码并识别SIM卡槽
+    // 自动填充验证码并识别SIM卡订阅ID
     LaunchedEffect(lastReceivedCode) {
         lastReceivedCode?.let { codeData ->
             // 检查是否在60秒内收到的验证码
             val isRecent =
                 (System.currentTimeMillis() - codeData.timestamp) < Constants.VERIFICATION_CODE_EXPIRY_MS
             if (isRecent) {
-                Timber.d("自动填充验证码: ${codeData.code}, SIM卡槽: ${codeData.subscriptionId + 1}")
+                Timber.d("自动填充验证码: ${codeData.code}, SIM卡订阅ID: ${codeData.subscriptionId}")
                 state = state.copy(
                     verificationCode = codeData.code,
                     detectedSubscriptionId = codeData.subscriptionId
                 )
-
-                // 可以选择自动验证
-                // if (state.verificationCode.length >= 4 && !state.isVerifying) {
-                //     verifyCode()
-                // }
             }
         }
     }
@@ -247,10 +242,10 @@ private fun VerificationDialog(
         state = state.copy(isSendingCode = true, errorMessage = null)
         coroutineScope.launch {
             try {
-                // 发送验证码时使用默认SIM卡槽0
+                // 发送验证码时使用默认SIM卡订阅ID
                 val result = apiPushService.sendVerificationCode(
                     state.phoneNumber,
-                    Constants.DEFAULT_SUBSCRIPTION_ID  // 使用默认值，实际SIM卡槽会在接收验证码时确定
+                    Constants.DEFAULT_SUBSCRIPTION_ID  // 使用默认值，实际SIM卡订阅ID会在接收验证码时确定
                 )
 
                 if (result.isSuccess) {
@@ -285,7 +280,7 @@ private fun VerificationDialog(
     fun verifyCode() {
         if (state.isVerifying || state.verificationCode.isEmpty()) return
         if (state.detectedSubscriptionId < 0) {
-            state = state.copy(errorMessage = "未检测到SIM卡槽，请确保收到验证码")
+            state = state.copy(errorMessage = "未检测到SIM卡订阅ID，请确保收到验证码")
             return
         }
 
@@ -331,9 +326,9 @@ private fun VerificationDialog(
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text("手机号: ${state.phoneNumber}")
                 if (state.detectedSubscriptionId >= 0) {
-                    Text("检测到的SIM卡槽: SIM${state.detectedSubscriptionId + 1}")
+                    Text("检测到的SIM卡订阅ID: SIM${state.detectedSubscriptionId}")
                 } else {
-                    Text("等待检测SIM卡槽...")
+                    Text("等待检测SIM卡订阅ID...")
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -454,7 +449,7 @@ private fun BindingItem(
                 style = MaterialTheme.typography.bodyLarge
             )
             Text(
-                text = "SIM${binding.subscriptionId + 1}",
+                text = "SIM${binding.subscriptionId}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -500,7 +495,7 @@ private fun AddBindingDialog(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = "系统将自动根据接收到的验证码短信确定SIM卡槽",
+                    text = "系统将自动根据接收到的验证码短信确定SIM卡订阅ID",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

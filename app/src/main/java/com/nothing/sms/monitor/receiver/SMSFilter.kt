@@ -45,6 +45,6 @@ class SMSFilter(context: Context) {
      */
     fun isTrustedSender(sender: String): Boolean {
         //TODO 可以自行实现
-        return sender.isNotBlank();
+        return sender.isNotBlank()
     }
 } 
