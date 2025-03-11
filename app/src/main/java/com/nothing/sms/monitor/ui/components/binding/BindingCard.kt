@@ -244,8 +244,7 @@ private fun VerificationDialog(
             try {
                 // 发送验证码时使用默认SIM卡订阅ID
                 val result = apiPushService.sendVerificationCode(
-                    state.phoneNumber,
-                    Constants.DEFAULT_SUBSCRIPTION_ID  // 使用默认值，实际SIM卡订阅ID会在接收验证码时确定
+                    state.phoneNumber
                 )
 
                 if (result.isSuccess) {

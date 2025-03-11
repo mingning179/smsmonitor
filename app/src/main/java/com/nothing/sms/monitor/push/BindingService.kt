@@ -8,11 +8,9 @@ interface BindingService {
     /**
      * 发送验证码
      * @param phoneNumber 手机号
-     * @param subscriptionId SIM卡订阅ID
      * @return 发送结果
      */
-    suspend fun sendVerificationCode(phoneNumber: String, subscriptionId: Int): Result<Boolean>
-
+    suspend fun sendVerificationCode(phoneNumber: String): Result<Boolean>
     /**
      * 验证并绑定
      * @param phoneNumber 手机号

@@ -288,8 +288,7 @@ class ApiPushService(
      * 发送验证码
      */
     override suspend fun sendVerificationCode(
-        phoneNumber: String,
-        subscriptionId: Int
+        phoneNumber: String
     ): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
             // 检查服务是否启用
@@ -302,7 +301,6 @@ class ApiPushService(
             // 准备请求数据
             val requestData = JSONObject().apply {
                 put("phoneNumber", phoneNumber)
-                put("subscriptionId", subscriptionId)
                 put("deviceId", settingsService.getDeviceId())
                 put("deviceInfo", getDeviceInfo())
             }
@@ -392,7 +390,7 @@ class ApiPushService(
                                 verifyCount = 0
                             )
                         )
-                        Timber.d("手机号绑定成功")
+                        Timber.d("手机号绑定成功，确认的订阅ID: $subscriptionId")
                         Result.success(true)
                     } else {
                         val message = jsonResponse.optString("message", "未知错误")
