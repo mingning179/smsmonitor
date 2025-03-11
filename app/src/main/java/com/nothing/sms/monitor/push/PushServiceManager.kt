@@ -22,17 +22,17 @@ class PushServiceManager private constructor(private val context: Context) {
 
     // 已注册的推送服务列表
     private val pushServices = mutableMapOf<String, PushService>()
-    
+
     // 常用服务的引用
     private var _apiPushService: ApiPushService? = null
     private var _settingsService: SettingsService? = null
-    
+
     // 公开的API获取服务实例
     val apiPushService: ApiPushService
         get() = _apiPushService ?: (getService("api") as? ApiPushService)
             ?.also { _apiPushService = it }
-            ?: throw IllegalStateException("ApiPushService未注册")
-    
+        ?: throw IllegalStateException("ApiPushService未注册")
+
     val settingsService: SettingsService
         get() = _settingsService ?: SettingsService.getInstance(context)
             .also { _settingsService = it }
@@ -48,7 +48,7 @@ class PushServiceManager private constructor(private val context: Context) {
     private fun registerBuiltInServices() {
         // 预先创建SettingsService实例
         _settingsService = SettingsService.getInstance(context)
-        
+
         // 注册API推送服务（默认启用）
         val apiService = ApiPushService(context, _settingsService!!)
         // 默认启用API推送

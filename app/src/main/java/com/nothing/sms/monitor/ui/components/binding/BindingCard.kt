@@ -137,7 +137,7 @@ fun BindingCard() {
                 showVerifyDialog = null
                 VerificationCodeReceiver.clearLastCode()
             },
-            onVerified = { _, subscriptionId ->
+            onVerified = { _, _ ->
                 coroutineScope.launch {
                     refreshTrigger += 1 // 刷新绑定列表
                     showVerifyDialog = null

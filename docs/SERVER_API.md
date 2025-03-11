@@ -14,17 +14,18 @@
 
 **接口路径**: `/send-code`  
 **方法**: POST  
-**功能描述**: 向指定手机号发送验证码，用于绑定设备  
+**功能描述**: 向指定手机号发送验证码，用于绑定设备
 
 #### 请求参数
 
-| 参数名 | 类型 | 必填 | 描述 |
-|-------|------|-----|------|
-| phoneNumber | String | 是 | 手机号码 |
-| deviceId | String | 是 | 设备唯一标识ID |
-| deviceInfo | String | 是 | 设备信息，如制造商和型号 |
+| 参数名         | 类型     | 必填 | 描述           |
+|-------------|--------|----|--------------|
+| phoneNumber | String | 是  | 手机号码         |
+| deviceId    | String | 是  | 设备唯一标识ID     |
+| deviceInfo  | String | 是  | 设备信息，如制造商和型号 |
 
 #### 请求示例
+
 ```json
 {
     "phoneNumber": "13800138000",
@@ -35,12 +36,13 @@
 
 #### 响应参数
 
-| 参数名 | 类型 | 描述 |
-|-------|------|------|
-| success | Boolean | 操作是否成功 |
-| message | String | 结果消息或错误信息 |
+| 参数名     | 类型      | 描述        |
+|---------|---------|-----------|
+| success | Boolean | 操作是否成功    |
+| message | String  | 结果消息或错误信息 |
 
 #### 响应示例 (成功)
+
 ```json
 {
     "success": true,
@@ -49,6 +51,7 @@
 ```
 
 #### 响应示例 (失败)
+
 ```json
 {
     "success": false,
@@ -62,19 +65,20 @@
 
 **接口路径**: `/verify-bind`  
 **方法**: POST  
-**功能描述**: 验证用户输入的验证码并完成设备绑定，由服务器确定最终的subscriptionId  
+**功能描述**: 验证用户输入的验证码并完成设备绑定，由服务器确定最终的subscriptionId
 
 #### 请求参数
 
-| 参数名 | 类型 | 必填 | 描述 |
-|-------|------|-----|------|
-| phoneNumber | String | 是 | 手机号码 |
-| code | String | 是 | 用户收到的验证码 |
-| subscriptionId | Integer | 是 | 客户端建议的SIM卡订阅ID |
-| deviceId | String | 是 | 设备唯一标识ID |
-| deviceInfo | String | 是 | 设备信息 |
+| 参数名            | 类型      | 必填 | 描述             |
+|----------------|---------|----|----------------|
+| phoneNumber    | String  | 是  | 手机号码           |
+| code           | String  | 是  | 用户收到的验证码       |
+| subscriptionId | Integer | 是  | 客户端建议的SIM卡订阅ID |
+| deviceId       | String  | 是  | 设备唯一标识ID       |
+| deviceInfo     | String  | 是  | 设备信息           |
 
 #### 请求示例
+
 ```json
 {
     "phoneNumber": "13800138000",
@@ -87,13 +91,14 @@
 
 #### 响应参数
 
-| 参数名 | 类型 | 描述 |
-|-------|------|------|
-| success | Boolean | 操作是否成功 |
-| message | String | 结果消息或错误信息 |
+| 参数名            | 类型      | 描述                    |
+|----------------|---------|-----------------------|
+| success        | Boolean | 操作是否成功                |
+| message        | String  | 结果消息或错误信息             |
 | subscriptionId | Integer | 服务器确认的订阅ID（可能与请求中的不同） |
 
 #### 响应示例 (成功)
+
 ```json
 {
     "success": true,
@@ -103,6 +108,7 @@
 ```
 
 #### 响应示例 (失败)
+
 ```json
 {
     "success": false,
@@ -116,20 +122,21 @@
 
 **接口路径**: `/report-sms`  
 **方法**: POST  
-**功能描述**: 上报接收到的短信内容  
+**功能描述**: 上报接收到的短信内容
 
 #### 请求参数
 
-| 参数名 | 类型 | 必填 | 描述 |
-|-------|------|-----|------|
-| sender | String | 是 | 短信发送者号码 |
-| content | String | 是 | 短信内容 |
-| timestamp | Long | 是 | 接收短信的时间戳 |
-| deviceInfo | String | 是 | 设备信息 |
-| deviceId | String | 是 | 设备唯一标识ID |
-| subscriptionId | Integer | 是 | SIM卡订阅ID |
+| 参数名            | 类型      | 必填 | 描述       |
+|----------------|---------|----|----------|
+| sender         | String  | 是  | 短信发送者号码  |
+| content        | String  | 是  | 短信内容     |
+| timestamp      | Long    | 是  | 接收短信的时间戳 |
+| deviceInfo     | String  | 是  | 设备信息     |
+| deviceId       | String  | 是  | 设备唯一标识ID |
+| subscriptionId | Integer | 是  | SIM卡订阅ID |
 
 #### 请求示例
+
 ```json
 {
     "sender": "10086",
@@ -143,12 +150,13 @@
 
 #### 响应参数
 
-| 参数名 | 类型 | 描述 |
-|-------|------|------|
-| success | Boolean | 操作是否成功 |
-| message | String | 结果消息或错误信息 |
+| 参数名     | 类型      | 描述        |
+|---------|---------|-----------|
+| success | Boolean | 操作是否成功    |
+| message | String  | 结果消息或错误信息 |
 
 #### 响应示例 (成功)
+
 ```json
 {
     "success": true,
@@ -157,6 +165,7 @@
 ```
 
 #### 响应示例 (失败)
+
 ```json
 {
     "success": false,
@@ -170,21 +179,22 @@
 
 **接口路径**: `/report-status`  
 **方法**: POST  
-**功能描述**: 上报设备短信监控状态数据  
+**功能描述**: 上报设备短信监控状态数据
 
 #### 请求参数
 
-| 参数名 | 类型 | 必填 | 描述 |
-|-------|------|-----|------|
-| deviceId | String | 是 | 设备唯一标识ID |
-| totalSMS | Integer | 是 | 总短信数量 |
-| successSMS | Integer | 是 | 成功上报的短信数量 |
-| failedSMS | Integer | 是 | 上报失败的短信数量 |
-| pendingSMS | Integer | 是 | 待处理的短信数量 |
-| timestamp | Long | 是 | 上报时间戳 |
-| deviceInfo | String | 是 | 设备信息 |
+| 参数名        | 类型      | 必填 | 描述        |
+|------------|---------|----|-----------|
+| deviceId   | String  | 是  | 设备唯一标识ID  |
+| totalSMS   | Integer | 是  | 总短信数量     |
+| successSMS | Integer | 是  | 成功上报的短信数量 |
+| failedSMS  | Integer | 是  | 上报失败的短信数量 |
+| pendingSMS | Integer | 是  | 待处理的短信数量  |
+| timestamp  | Long    | 是  | 上报时间戳     |
+| deviceInfo | String  | 是  | 设备信息      |
 
 #### 请求示例
+
 ```json
 {
     "deviceId": "SMS_12345abcde",
@@ -199,12 +209,13 @@
 
 #### 响应参数
 
-| 参数名 | 类型 | 描述 |
-|-------|------|------|
-| success | Boolean | 操作是否成功 |
-| message | String | 结果消息或错误信息 |
+| 参数名     | 类型      | 描述        |
+|---------|---------|-----------|
+| success | Boolean | 操作是否成功    |
+| message | String  | 结果消息或错误信息 |
 
 #### 响应示例 (成功)
+
 ```json
 {
     "success": true,
@@ -213,6 +224,7 @@
 ```
 
 #### 响应示例 (失败)
+
 ```json
 {
     "success": false,
@@ -224,12 +236,12 @@
 
 ### 错误码说明
 
-| 错误码 | 描述 |
-|--------|------|
-| 400 | 请求参数错误 |
-| 401 | 设备未授权 |
-| 403 | 访问被拒绝 |
-| 404 | 接口不存在 |
+| 错误码 | 描述      |
+|-----|---------|
+| 400 | 请求参数错误  |
+| 401 | 设备未授权   |
+| 403 | 访问被拒绝   |
+| 404 | 接口不存在   |
 | 500 | 服务器内部错误 |
 
 ### 安全建议

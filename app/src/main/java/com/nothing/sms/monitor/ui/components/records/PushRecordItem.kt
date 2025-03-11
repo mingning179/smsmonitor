@@ -45,9 +45,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.nothing.sms.monitor.db.SMSDatabase
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import com.nothing.sms.monitor.db.SMSConstants
+import com.nothing.sms.monitor.db.SMSRepository
+import com.nothing.sms.monitor.model.PushRecord
+import com.nothing.sms.monitor.model.SMS
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -57,27 +58,25 @@ import java.util.Locale
  */
 @Composable
 fun PushRecordItem(
-    record: SMSDatabase.PushRecord,
+    record: PushRecord,
     onRetry: () -> Unit
 ) {
     val context = LocalContext.current
-    val smsDatabase = remember { SMSDatabase(context) }
+    val repository = remember { SMSRepository(context) }
     val formattedTime = remember(record.pushTimestamp) {
         formatTimestamp(record.pushTimestamp)
     }
 
     // 短信相关状态
-    var smsInfo by remember { mutableStateOf<SMSDatabase.SMS?>(null) }
+    var smsInfo by remember { mutableStateOf<SMS?>(null) }
     var smsTimestamp by remember { mutableStateOf("") }
     var isContentExpanded by remember { mutableStateOf(false) }
 
-    // 异步加载短信内容
+    // 加载短信内容 (同步方式)
     LaunchedEffect(record.smsId) {
-        withContext(Dispatchers.IO) {
-            smsInfo = smsDatabase.getSMSById(record.smsId)
-            if (smsInfo != null) {
-                smsTimestamp = formatTimestamp(smsInfo!!.timestamp)
-            }
+        smsInfo = repository.getSMSById(record.smsId)
+        if (smsInfo != null) {
+            smsTimestamp = formatTimestamp(smsInfo!!.timestamp)
         }
     }
 
@@ -92,7 +91,7 @@ fun PushRecordItem(
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = if (record.status == SMSDatabase.STATUS_FAILED)
+        border = if (record.status == SMSConstants.STATUS_FAILED)
             BorderStroke(1.dp, MaterialTheme.colorScheme.errorContainer)
         else null
     ) {
@@ -127,7 +126,7 @@ fun PushRecordItem(
             }
 
             // 错误信息（如果有）
-            if (!record.errorMessage.isNullOrBlank() && record.status == SMSDatabase.STATUS_FAILED) {
+            if (!record.errorMessage.isNullOrBlank() && record.status == SMSConstants.STATUS_FAILED) {
                 Spacer(modifier = Modifier.height(6.dp))
                 ErrorMessageBox(errorMessage = record.errorMessage)
             }
@@ -223,7 +222,7 @@ private fun StatusLabel(color: Color, text: String) {
  */
 @Composable
 private fun SmsContentCard(
-    sms: SMSDatabase.SMS,
+    sms: SMS,
     smsTimestamp: String,
     isContentExpanded: Boolean,
     onExpandToggle: () -> Unit,
@@ -430,8 +429,8 @@ private fun RetryButton(onRetry: () -> Unit) {
 @Composable
 private fun getStatusColor(status: Int): Color {
     return when (status) {
-        SMSDatabase.STATUS_SUCCESS -> MaterialTheme.colorScheme.primary
-        SMSDatabase.STATUS_FAILED -> MaterialTheme.colorScheme.error
+        SMSConstants.STATUS_SUCCESS -> MaterialTheme.colorScheme.primary
+        SMSConstants.STATUS_FAILED -> MaterialTheme.colorScheme.error
         else -> MaterialTheme.colorScheme.outline
     }
 }
@@ -442,8 +441,8 @@ private fun getStatusColor(status: Int): Color {
 @Composable
 private fun getStatusText(status: Int): String {
     return when (status) {
-        SMSDatabase.STATUS_SUCCESS -> "成功"
-        SMSDatabase.STATUS_FAILED -> "失败"
+        SMSConstants.STATUS_SUCCESS -> "成功"
+        SMSConstants.STATUS_FAILED -> "失败"
         else -> "待处理"
     }
 }

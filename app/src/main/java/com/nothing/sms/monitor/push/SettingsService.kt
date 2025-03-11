@@ -158,7 +158,8 @@ class SettingsService private constructor(private val appContext: Context) {
      */
     private fun getSystemUniqueId(): String {
         // 获取Android ID作为基础
-        val androidId = Settings.Secure.getString(appContext.contentResolver, Settings.Secure.ANDROID_ID)
+        val androidId =
+            Settings.Secure.getString(appContext.contentResolver, Settings.Secure.ANDROID_ID)
 
         // 如果Android ID无效或为null，使用备用标识符
         if (androidId.isNullOrBlank() || androidId == "9774d56d682e549c") { // 9774d56d682e549c是模拟器常见ID

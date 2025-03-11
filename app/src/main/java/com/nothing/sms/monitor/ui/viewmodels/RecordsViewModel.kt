@@ -1,118 +1,104 @@
 package com.nothing.sms.monitor.ui.viewmodels
 
-import android.content.Context
+import android.app.Application
 import android.content.Intent
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.nothing.sms.monitor.db.SMSDatabase
+import com.nothing.sms.monitor.db.SMSRepository
+import com.nothing.sms.monitor.model.PushRecord
 import com.nothing.sms.monitor.service.SMSProcessingService
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * 推送记录的视图模型，处理数据获取和业务逻辑
+ * 推送记录ViewModel
  */
-class RecordsViewModel(private val context: Context) : ViewModel() {
+class RecordsViewModel(application: Application) : AndroidViewModel(application) {
+    private val repository = SMSRepository(application)
+    private var _showFailedOnly = false
 
-    private val smsDatabase = SMSDatabase(context)
-
-    // UI状态
-    var records by mutableStateOf<List<SMSDatabase.PushRecord>>(emptyList())
+    // 推送记录列表
+    var records by mutableStateOf<List<PushRecord>>(emptyList())
         private set
     var selectedTabIndex by mutableIntStateOf(0)
         private set
-    var isLoading by mutableStateOf(true)
+    var isLoading by mutableStateOf(false)
         private set
 
     init {
-        loadRecords()
-        startAutoRefresh()
+        refresh()
     }
 
     /**
-     * 加载推送记录
-     */
-    private fun loadRecords() {
-        viewModelScope.launch {
-            isLoading = true
-            withContext(Dispatchers.IO) {
-                records = when (selectedTabIndex) {
-                    0 -> smsDatabase.getAllPushRecords()
-                    1 -> smsDatabase.getFailedPushRecords()
-                    else -> emptyList()
-                }
-            }
-            isLoading = false
-        }
-    }
-
-    /**
-     * 切换标签页
+     * 选择标签
      */
     fun selectTab(index: Int) {
-        selectedTabIndex = index
-        loadRecords()
+        if (selectedTabIndex != index) {
+            selectedTabIndex = index
+            refresh()
+        }
     }
 
     /**
-     * 手动刷新
+     * 刷新数据
      */
     fun refresh() {
-        loadRecords()
-    }
-
-    /**
-     * 启动自动刷新
-     */
-    private fun startAutoRefresh() {
+        isLoading = true
         viewModelScope.launch {
-            while (true) {
-                delay(10000) // 每10秒自动刷新一次
-                loadRecords()
+            try {
+                withContext(Dispatchers.IO) {
+                    records = when (selectedTabIndex) {
+                        0 -> repository.getAllPushRecords()
+                        1 -> repository.getFailedPushRecords()
+                        else -> emptyList()
+                    }
+                }
+            } finally {
+                isLoading = false
             }
         }
     }
 
     /**
-     * 重试推送失败的记录
+     * 重试推送记录
      */
     fun retryPushRecord(recordId: Long) {
         viewModelScope.launch {
             // 发送重试广播
-            val intent = Intent(context, SMSProcessingService::class.java).apply {
+            val intent = Intent(getApplication(), SMSProcessingService::class.java).apply {
                 action = SMSProcessingService.ACTION_RETRY_PUSH
                 putExtra(SMSProcessingService.EXTRA_PUSH_RECORD_ID, recordId)
             }
-            context.startService(intent)
+            getApplication<Application>().startService(intent)
 
             // 通知用户
             android.widget.Toast.makeText(
-                context,
+                getApplication(),
                 "已发送重试请求",
                 android.widget.Toast.LENGTH_SHORT
             ).show()
 
-            // 延迟刷新列表
-            delay(1000)
-            loadRecords()
+            // 稍等片刻后刷新数据
+            kotlinx.coroutines.delay(1000)
+            refresh()
         }
     }
 
     /**
      * 工厂类，用于创建ViewModel实例
      */
-    class Factory(private val context: Context) : ViewModelProvider.Factory {
+    class Factory(private val application: Application) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(RecordsViewModel::class.java)) {
-                return RecordsViewModel(context) as T
+                return RecordsViewModel(application) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class")
         }

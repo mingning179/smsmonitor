@@ -16,7 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.nothing.sms.monitor.db.SMSDatabase
+import com.nothing.sms.monitor.model.PushRecord
 
 /**
  * 标签页
@@ -71,11 +71,11 @@ fun EmptyContent(isAllRecords: Boolean) {
 }
 
 /**
- * 记录列表
+ * 推送记录列表组件
  */
 @Composable
-fun RecordsList(
-    records: List<SMSDatabase.PushRecord>,
+fun PushRecordsList(
+    records: List<PushRecord>,
     onRetry: (Long) -> Unit
 ) {
     LazyColumn(

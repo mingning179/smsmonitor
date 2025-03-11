@@ -1,5 +1,6 @@
 package com.nothing.sms.monitor.ui.screens
 
+import android.app.Application
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -19,7 +20,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.nothing.sms.monitor.ui.components.records.EmptyContent
 import com.nothing.sms.monitor.ui.components.records.LoadingContent
-import com.nothing.sms.monitor.ui.components.records.RecordsList
+import com.nothing.sms.monitor.ui.components.records.PushRecordsList
 import com.nothing.sms.monitor.ui.components.records.RecordsTabs
 import com.nothing.sms.monitor.ui.viewmodels.RecordsViewModel
 
@@ -31,7 +32,8 @@ import com.nothing.sms.monitor.ui.viewmodels.RecordsViewModel
 @Composable
 fun RecordsScreen() {
     val context = LocalContext.current
-    val viewModel: RecordsViewModel = viewModel(factory = RecordsViewModel.Factory(context))
+    val viewModel: RecordsViewModel =
+        viewModel(factory = RecordsViewModel.Factory(context.applicationContext as Application))
 
     Scaffold(
         topBar = {
@@ -67,9 +69,9 @@ fun RecordsScreen() {
             when {
                 viewModel.isLoading -> LoadingContent()
                 viewModel.records.isEmpty() -> EmptyContent(isAllRecords = viewModel.selectedTabIndex == 0)
-                else -> RecordsList(
+                else -> PushRecordsList(
                     records = viewModel.records,
-                    onRetry = { viewModel.retryPushRecord(it) }
+                    onRetry = { recordId -> viewModel.retryPushRecord(recordId) }
                 )
             }
         }

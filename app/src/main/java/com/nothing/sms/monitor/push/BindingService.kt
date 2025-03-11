@@ -11,6 +11,7 @@ interface BindingService {
      * @return 发送结果
      */
     suspend fun sendVerificationCode(phoneNumber: String): Result<Boolean>
+
     /**
      * 验证并绑定
      * @param phoneNumber 手机号
@@ -18,5 +19,9 @@ interface BindingService {
      * @param subscriptionId SIM卡订阅ID
      * @return 绑定结果
      */
-    suspend fun verifyAndBind(phoneNumber: String, code: String, subscriptionId: Int): Result<Boolean>
+    suspend fun verifyAndBind(
+        phoneNumber: String,
+        code: String,
+        subscriptionId: Int
+    ): Result<Boolean>
 }

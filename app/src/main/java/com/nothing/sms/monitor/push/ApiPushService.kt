@@ -1,7 +1,7 @@
 package com.nothing.sms.monitor.push
 
 import android.content.Context
-import com.nothing.sms.monitor.db.SMSDatabase
+import com.nothing.sms.monitor.db.SMSRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -29,7 +29,7 @@ class ApiPushService(
         const val MEDIA_TYPE = "application/json; charset=utf-8"
     }
 
-    private val smsDatabase by lazy { SMSDatabase(context) }
+    private val smsRepository by lazy { SMSRepository(context) }
 
     private val client: OkHttpClient by lazy {
         OkHttpClient.Builder()
@@ -131,7 +131,7 @@ class ApiPushService(
             }
 
             // 获取统计数据
-            val stats = smsDatabase.getStats()
+            val stats = smsRepository.getStats()
 
             // 构建状态数据
             val statusData = StatusData(

@@ -11,7 +11,9 @@ import android.os.IBinder
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import com.nothing.sms.monitor.MainActivity
-import com.nothing.sms.monitor.db.SMSDatabase
+import com.nothing.sms.monitor.db.SMSConstants
+import com.nothing.sms.monitor.db.SMSRepository
+import com.nothing.sms.monitor.model.SMSStats
 import com.nothing.sms.monitor.push.PushService
 import com.nothing.sms.monitor.push.PushServiceManager
 import com.nothing.sms.monitor.push.SettingsService
@@ -53,7 +55,7 @@ class SMSProcessingService : Service() {
     }
 
     private lateinit var settingsService: SettingsService
-    private lateinit var smsDatabase: SMSDatabase
+    private lateinit var smsRepository: SMSRepository
     private lateinit var pushServiceManager: PushServiceManager
     private lateinit var serviceScope: CoroutineScope
 
@@ -71,7 +73,7 @@ class SMSProcessingService : Service() {
 
         // 初始化服务
         settingsService = SettingsService.getInstance(this)
-        smsDatabase = SMSDatabase(this)
+        smsRepository = SMSRepository(this)
         pushServiceManager = PushServiceManager.getInstance(this)
 
         // 创建协程上下文
@@ -140,7 +142,7 @@ class SMSProcessingService : Service() {
     ) {
         try {
             // 保存到数据库，获取SMS ID
-            val smsId = smsDatabase.saveSMS(sender, body, timestamp, subscriptionId)
+            val smsId = smsRepository.saveSMS(sender, body, timestamp, subscriptionId)
 
             // 获取启用的推送服务
             val enabledServices = pushServiceManager.getEnabledServices()
@@ -148,7 +150,7 @@ class SMSProcessingService : Service() {
             if (enabledServices.isEmpty()) {
                 // 如果没有启用的推送服务，将短信状态直接设为SUCCESS
                 // 这样避免消息一直显示为待处理状态
-                smsDatabase.updateStatus(smsId, SMSDatabase.STATUS_SUCCESS)
+                smsRepository.updateStatus(smsId, SMSConstants.STATUS_SUCCESS)
                 Timber.i("没有启用的推送服务，短信已保存但不会推送")
             } else {
                 // 推送到所有已启用的推送服务
@@ -157,7 +159,7 @@ class SMSProcessingService : Service() {
 
             // 清理旧记录
             withContext(Dispatchers.IO) {
-                smsDatabase.cleanupOldRecords()
+                smsRepository.cleanupOldRecords()
             }
 
             updateNotification("短信处理完成")
@@ -182,12 +184,12 @@ class SMSProcessingService : Service() {
         if (enabledServices.isEmpty()) {
             Timber.w("没有已启用的推送服务")
             // 如果没有启用的推送服务，将短信状态直接设为SUCCESS
-            smsDatabase.updateStatus(smsId, SMSDatabase.STATUS_SUCCESS)
+            smsRepository.updateStatus(smsId, SMSConstants.STATUS_SUCCESS)
             return
         }
 
         // 获取已有的所有推送服务类型（无论状态如何），避免重复推送
-        val existingServiceTypes = smsDatabase.getAllServiceTypesBySmsId(smsId)
+        val existingServiceTypes = smsRepository.getAllServiceTypesBySmsId(smsId)
         Timber.d("短信已有的推送服务类型: $existingServiceTypes")
 
         // 仅推送到未创建记录的服务
@@ -221,19 +223,19 @@ class SMSProcessingService : Service() {
             result.fold(
                 onSuccess = {
                     // 推送成功，记录结果
-                    smsDatabase.addPushRecord(
+                    smsRepository.addPushRecord(
                         smsId = smsId,
                         service = service,
-                        status = SMSDatabase.STATUS_SUCCESS
+                        status = SMSConstants.STATUS_SUCCESS
                     )
                     Timber.d("推送到 ${service.serviceName} 成功")
                 },
                 onFailure = { e ->
                     // 推送失败，记录错误
-                    smsDatabase.addPushRecord(
+                    smsRepository.addPushRecord(
                         smsId = smsId,
                         service = service,
-                        status = SMSDatabase.STATUS_FAILED,
+                        status = SMSConstants.STATUS_FAILED,
                         errorMessage = e.message ?: "未知错误"
                     )
                     Timber.e(e, "推送到 ${service.serviceName} 失败")
@@ -241,10 +243,10 @@ class SMSProcessingService : Service() {
             )
         } catch (e: Exception) {
             // 发生异常，记录错误
-            smsDatabase.addPushRecord(
+            smsRepository.addPushRecord(
                 smsId = smsId,
                 service = service,
-                status = SMSDatabase.STATUS_FAILED,
+                status = SMSConstants.STATUS_FAILED,
                 errorMessage = e.message ?: "未知错误"
             )
             Timber.e(e, "推送到 ${service.serviceName} 时发生异常: ${e.message}")
@@ -258,16 +260,16 @@ class SMSProcessingService : Service() {
         serviceScope.launch {
             try {
                 // 获取推送记录
-                val record = smsDatabase.getPushRecordById(recordId) ?: return@launch
+                val record = smsRepository.getPushRecordById(recordId) ?: return@launch
 
                 // 检查是否可以重试
                 if (!record.canRetry) {
                     Timber.w("推送记录 #${record.id} 无法重试：已达到最大重试次数或状态不允许")
 
                     // 超过最大重试次数后，将推送记录标记为失败
-                    smsDatabase.updatePushRecordStatus(
+                    smsRepository.updatePushRecordStatus(
                         recordId = record.id,
-                        status = SMSDatabase.STATUS_FAILED,
+                        status = SMSConstants.STATUS_FAILED,
                         errorMessage = "已达到最大重试次数"
                     )
 
@@ -281,45 +283,46 @@ class SMSProcessingService : Service() {
                 }
 
                 // 获取对应短信
-                val sms = smsDatabase.getSMSById(record.smsId) ?: return@launch
+                val sms = smsRepository.getSMSById(record.smsId) ?: return@launch
 
                 // 获取推送服务
                 val service = pushServiceManager.getService(record.serviceType) ?: return@launch
 
                 // 检查该服务是否已成功推送过（可能在多线程环境下，状态已更新）
-                val successfulServices = smsDatabase.getSuccessfulServiceTypes(record.smsId)
+                val successfulServices = smsRepository.getSuccessfulServiceTypes(record.smsId)
                 if (service.serviceType in successfulServices) {
                     Timber.d("服务 ${service.serviceName} 已成功推送，跳过重试")
                     return@launch
                 }
 
                 // 增加重试次数
-                val currentRetry = smsDatabase.incrementRetryCount(recordId)
+                val currentRetry = smsRepository.incrementRetryCount(recordId)
 
                 Timber.i("正在重试推送记录 #${record.id}，SMS ID: ${record.smsId}，服务: ${record.serviceName}，重试次数: $currentRetry")
 
                 // 重新推送
-                val result = service.pushSMS(sms.sender, sms.content, sms.timestamp, sms.subscriptionId)
+                val result =
+                    service.pushSMS(sms.sender, sms.content, sms.timestamp, sms.subscriptionId)
 
                 result.fold(
                     onSuccess = {
                         // 推送成功，更新状态
-                        smsDatabase.updatePushRecordStatus(
+                        smsRepository.updatePushRecordStatus(
                             recordId = record.id,
-                            status = SMSDatabase.STATUS_SUCCESS
+                            status = SMSConstants.STATUS_SUCCESS
                         )
                         Timber.d("重试推送到 ${service.serviceName} 成功")
                     },
                     onFailure = { e ->
                         // 判断是否是最后一次重试
-                        val finalStatus = if (currentRetry >= SMSDatabase.MAX_RETRY_COUNT) {
-                            SMSDatabase.STATUS_FAILED
+                        val finalStatus = if (currentRetry >= SMSConstants.MAX_RETRY_COUNT) {
+                            SMSConstants.STATUS_FAILED
                         } else {
-                            SMSDatabase.STATUS_FAILED // 仍然是失败状态，但允许后续重试
+                            SMSConstants.STATUS_FAILED // 仍然是失败状态，但允许后续重试
                         }
 
                         // 推送失败，更新错误信息
-                        smsDatabase.updatePushRecordStatus(
+                        smsRepository.updatePushRecordStatus(
                             recordId = record.id,
                             status = finalStatus,
                             errorMessage = e.message ?: "未知错误"
@@ -330,7 +333,7 @@ class SMSProcessingService : Service() {
                         )
 
                         // 如果这是最后一次重试，显示Toast通知
-                        if (currentRetry >= SMSDatabase.MAX_RETRY_COUNT) {
+                        if (currentRetry >= SMSConstants.MAX_RETRY_COUNT) {
                             Toast.makeText(
                                 applicationContext,
                                 "推送记录 #${record.id} 重试失败，已达到最大重试次数",
@@ -355,7 +358,7 @@ class SMSProcessingService : Service() {
                 if (!isActive) break
                 try {
                     val interval = settingsService.getStatusReportInterval()
-                    val stats = smsDatabase.getStats()
+                    val stats = smsRepository.getStats()
                     updateNotification(buildStatsMessage(stats))
 
                     // 延迟到下一次报告
@@ -395,51 +398,52 @@ class SMSProcessingService : Service() {
      */
     private suspend fun processRetryableRecords() = coroutineScope {
         // 获取可重试的推送记录
-        val retryableRecords = smsDatabase.getRetryablePushRecords()
+        val retryableRecords = smsRepository.getRetryablePushRecords()
         Timber.d("发现 ${retryableRecords.size} 条可重试的推送记录")
 
         for (record in retryableRecords) {
             if (!isActive) break
 
             // 获取SMS和服务
-            val sms = smsDatabase.getSMSById(record.smsId) ?: continue
+            val sms = smsRepository.getSMSById(record.smsId) ?: continue
             val service = pushServiceManager.getService(record.serviceType) ?: continue
 
             // 检查该服务是否已成功推送过（可能在多线程环境下，状态已更新）
-            val successfulServices = smsDatabase.getSuccessfulServiceTypes(record.smsId)
+            val successfulServices = smsRepository.getSuccessfulServiceTypes(record.smsId)
             if (service.serviceType in successfulServices) {
                 Timber.d("服务 ${service.serviceName} 已成功推送，跳过重试")
                 continue
             }
 
             // 增加重试次数
-            val currentRetry = smsDatabase.incrementRetryCount(record.id)
+            val currentRetry = smsRepository.incrementRetryCount(record.id)
             Timber.i("自动重试推送记录 #${record.id}，服务: ${record.serviceName}，重试次数: $currentRetry")
 
             try {
                 // 执行推送
-                val result = service.pushSMS(sms.sender, sms.content, sms.timestamp, sms.subscriptionId)
+                val result =
+                    service.pushSMS(sms.sender, sms.content, sms.timestamp, sms.subscriptionId)
 
                 result.fold(
                     onSuccess = {
                         // 推送成功，更新状态
-                        smsDatabase.updatePushRecordStatus(
+                        smsRepository.updatePushRecordStatus(
                             recordId = record.id,
-                            status = SMSDatabase.STATUS_SUCCESS
+                            status = SMSConstants.STATUS_SUCCESS
                         )
                         Timber.d("自动重试推送到 ${service.serviceName} 成功")
                     },
                     onFailure = { e ->
                         // 推送失败，更新错误信息
                         // 判断是否是最后一次重试
-                        val finalStatus = if (currentRetry >= SMSDatabase.MAX_RETRY_COUNT) {
-                            SMSDatabase.STATUS_FAILED
+                        val finalStatus = if (currentRetry >= SMSConstants.MAX_RETRY_COUNT) {
+                            SMSConstants.STATUS_FAILED
                         } else {
-                            SMSDatabase.STATUS_FAILED // 仍然是失败状态，但允许后续重试
+                            SMSConstants.STATUS_FAILED // 仍然是失败状态，但允许后续重试
                         }
 
                         // 更新状态
-                        smsDatabase.updatePushRecordStatus(
+                        smsRepository.updatePushRecordStatus(
                             recordId = record.id,
                             status = finalStatus,
                             errorMessage = e.message ?: "未知错误"
@@ -463,7 +467,7 @@ class SMSProcessingService : Service() {
         serviceScope.launch {
             try {
                 // 查找所有待处理但已达到最大重试次数的推送记录
-                val pendingWithMaxRetries = smsDatabase.getPendingRecordsWithMaxRetry()
+                val pendingWithMaxRetries = smsRepository.getPendingRecordsWithMaxRetry()
                 if (pendingWithMaxRetries.isNotEmpty()) {
                     Timber.i("发现 ${pendingWithMaxRetries.size} 条已达到最大重试次数的待处理记录")
 
@@ -472,9 +476,9 @@ class SMSProcessingService : Service() {
 
                         // 更新为失败状态
                         Timber.w("推送记录 #${record.id} 处于待处理状态但已达到最大重试次数，标记为失败")
-                        smsDatabase.updatePushRecordStatus(
+                        smsRepository.updatePushRecordStatus(
                             recordId = record.id,
-                            status = SMSDatabase.STATUS_FAILED,
+                            status = SMSConstants.STATUS_FAILED,
                             errorMessage = "已达到最大重试次数"
                         )
                     }
@@ -497,7 +501,7 @@ class SMSProcessingService : Service() {
     private fun processPendingMessages() {
         serviceScope.launch {
             try {
-                val pendingMessages = smsDatabase.getPendingMessages()
+                val pendingMessages = smsRepository.getPendingMessages()
                 Timber.i("发现 ${pendingMessages.size} 条待处理短信")
 
                 // 检查是否有启用的推送服务
@@ -506,7 +510,7 @@ class SMSProcessingService : Service() {
                     // 如果没有启用的推送服务，将所有待处理短信标记为成功
                     pendingMessages.forEach { sms ->
                         if (!isActive) return@forEach
-                        smsDatabase.updateStatus(sms.id, SMSDatabase.STATUS_SUCCESS)
+                        smsRepository.updateStatus(sms.id, SMSConstants.STATUS_SUCCESS)
                     }
                     Timber.i("没有启用的推送服务，所有待处理短信已标记为完成")
 
@@ -526,7 +530,7 @@ class SMSProcessingService : Service() {
                     if (!isActive) break
 
                     // 获取所有已有推送记录的服务类型（无论状态如何）
-                    val existingServiceTypes = smsDatabase.getAllServiceTypesBySmsId(sms.id)
+                    val existingServiceTypes = smsRepository.getAllServiceTypesBySmsId(sms.id)
 
                     // 检查是否所有服务都已经有记录
                     val allServicesHaveRecords =
@@ -536,7 +540,7 @@ class SMSProcessingService : Service() {
                         Timber.d("短信 ${sms.id} 已对所有启用的服务创建了推送记录，跳过创建新记录")
 
                         // 这里可以尝试重试失败的记录
-                        val failedRecords = smsDatabase.getPushRecordsBySmsId(sms.id)
+                        val failedRecords = smsRepository.getPushRecordsBySmsId(sms.id)
                             .filter { it.canRetry }
 
                         if (failedRecords.isNotEmpty()) {
@@ -623,10 +627,10 @@ class SMSProcessingService : Service() {
     }
 
     /**
-     * 建立统计信息消息（增加部分成功状态）
+     * 建立统计信息消息
      */
-    private fun buildStatsMessage(stats: SMSDatabase.SMSStats): String {
-        return "总计: ${stats.total} | 成功: ${stats.success} | 失败: ${stats.failed} | 待处理: ${stats.pending} | 部分成功: ${stats.partialSuccess}"
+    private fun buildStatsMessage(stats: SMSStats): String {
+        return stats.toString()
     }
 
     private fun createNotificationChannel() {
@@ -674,7 +678,7 @@ class SMSProcessingService : Service() {
         serviceScope.launch {
             try {
                 // 查找所有待处理但已达到最大重试次数的推送记录
-                val pendingWithMaxRetries = smsDatabase.getPendingRecordsWithMaxRetry()
+                val pendingWithMaxRetries = smsRepository.getPendingRecordsWithMaxRetry()
                 if (pendingWithMaxRetries.isNotEmpty()) {
                     Timber.i("发现 ${pendingWithMaxRetries.size} 条已达到最大重试次数的待处理记录")
 
@@ -683,9 +687,9 @@ class SMSProcessingService : Service() {
 
                         // 更新为失败状态
                         Timber.w("推送记录 #${record.id} 处于待处理状态但已达到最大重试次数，标记为失败")
-                        smsDatabase.updatePushRecordStatus(
+                        smsRepository.updatePushRecordStatus(
                             recordId = record.id,
-                            status = SMSDatabase.STATUS_FAILED,
+                            status = SMSConstants.STATUS_FAILED,
                             errorMessage = "已达到最大重试次数"
                         )
                     }

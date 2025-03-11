@@ -25,7 +25,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.nothing.sms.monitor.db.SMSDatabase
+import com.nothing.sms.monitor.db.SMSRepository
+import com.nothing.sms.monitor.model.SMSStats
 import com.nothing.sms.monitor.service.SMSProcessingService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -37,12 +38,15 @@ import kotlinx.coroutines.withContext
  * 显示服务运行状态和短信统计信息
  */
 @Composable
-fun ServiceStatusCard() {
+fun ServiceStatusCard(
+    modifier: Modifier = Modifier,
+    repository: SMSRepository
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val smsDatabase = remember { SMSDatabase(context) }
 
-    var stats by remember { mutableStateOf(SMSDatabase.SMSStats(0, 0, 0, 0)) }
+    // 统计数据
+    var stats by remember { mutableStateOf(SMSStats()) }
     var isLoading by remember { mutableStateOf(false) }
     var refreshTrigger by remember { mutableStateOf(0) }
 
@@ -51,7 +55,7 @@ fun ServiceStatusCard() {
         isLoading = true
         scope.launch {
             val newStats = withContext(Dispatchers.IO) {
-                smsDatabase.getStats()
+                repository.getStats()
             }
             stats = newStats
             isLoading = false
@@ -73,6 +77,7 @@ fun ServiceStatusCard() {
 
     CommonCard(
         title = "服务状态",
+        modifier = modifier
     ) {
         // 服务启动状态
         Text(

@@ -21,7 +21,6 @@ class SMSReceiver : BroadcastReceiver() {
     }
 
 
-
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Telephony.Sms.Intents.SMS_RECEIVED_ACTION) {
             return
