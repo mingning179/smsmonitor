@@ -39,7 +39,7 @@ class RecordsViewModel(private val context: Context) : ViewModel() {
     /**
      * 加载推送记录
      */
-    fun loadRecords() {
+    private fun loadRecords() {
         viewModelScope.launch {
             isLoading = true
             withContext(Dispatchers.IO) {

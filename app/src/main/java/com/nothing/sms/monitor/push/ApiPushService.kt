@@ -210,7 +210,7 @@ class ApiPushService(
                 key = KEY_API_URL,
                 label = "API服务器地址",
                 value = getString(KEY_API_URL, DEFAULT_API_URL),
-                hint = "例如: http://192.168.1.100:8080"
+                hint = "例如: $DEFAULT_API_URL"
             )
         )
     }

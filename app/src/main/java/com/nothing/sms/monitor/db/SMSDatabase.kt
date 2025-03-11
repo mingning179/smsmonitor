@@ -157,7 +157,7 @@ class SMSDatabase(context: Context) : SQLiteOpenHelper(
     /**
      * 更新重试次数
      */
-    fun updateRetryCount(id: Long, retryCount: Int) {
+    private fun updateRetryCount(id: Long, retryCount: Int) {
         val db = this.writableDatabase
 
         try {
@@ -594,15 +594,6 @@ class SMSDatabase(context: Context) : SQLiteOpenHelper(
             pushTimestamp = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_PUSH_TIMESTAMP)),
             retryCount = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_RETRY_COUNT))
         )
-    }
-
-    /**
-     * 格式化时间戳为可读字符串
-     */
-    fun formatTimestamp(timestamp: Long): String {
-        val date = Date(timestamp)
-        val formatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-        return formatter.format(date)
     }
 
     /**

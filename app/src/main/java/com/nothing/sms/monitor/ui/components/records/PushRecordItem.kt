@@ -48,6 +48,9 @@ import androidx.compose.ui.unit.dp
 import com.nothing.sms.monitor.db.SMSDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * 推送记录项
@@ -60,7 +63,7 @@ fun PushRecordItem(
     val context = LocalContext.current
     val smsDatabase = remember { SMSDatabase(context) }
     val formattedTime = remember(record.pushTimestamp) {
-        smsDatabase.formatTimestamp(record.pushTimestamp)
+        formatTimestamp(record.pushTimestamp)
     }
 
     // 短信相关状态
@@ -73,7 +76,7 @@ fun PushRecordItem(
         withContext(Dispatchers.IO) {
             smsInfo = smsDatabase.getSMSById(record.smsId)
             if (smsInfo != null) {
-                smsTimestamp = smsDatabase.formatTimestamp(smsInfo!!.timestamp)
+                smsTimestamp = formatTimestamp(smsInfo!!.timestamp)
             }
         }
     }
@@ -138,6 +141,12 @@ fun PushRecordItem(
             }
         }
     }
+}
+
+fun formatTimestamp(pushTimestamp: Long): String {
+    val date = Date(pushTimestamp)
+    val formatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+    return formatter.format(date)
 }
 
 /**
