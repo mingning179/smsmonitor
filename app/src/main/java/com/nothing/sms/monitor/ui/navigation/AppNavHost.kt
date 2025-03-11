@@ -2,8 +2,8 @@ package com.nothing.sms.monitor.ui.navigation
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
@@ -35,7 +35,7 @@ sealed class AppDestination(
     val title: String,
     val icon: ImageVector
 ) {
-    object Home : AppDestination("home", "短信监控", Icons.AutoMirrored.Filled.Message)
+    object Home : AppDestination("home", "消息中心", Icons.Filled.Notifications)
     object Records : AppDestination("records", "推送记录", Icons.Default.History)
     object Settings : AppDestination("settings", "设置", Icons.Default.Settings)
     object About : AppDestination("about", "关于", Icons.Default.Info)
