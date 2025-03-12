@@ -14,6 +14,46 @@
 - **记录管理**：完整的推送记录查看和管理功能
 - **界面友好**：现代化的Material 3设计风格，流畅的用户体验
 
+## 编译指南
+
+### 环境要求
+
+- Android Studio Hedgehog 或更高版本
+- JDK 17 或更高版本
+- Gradle 8.0 或更高版本
+
+### 手动构建步骤
+
+如果你想手动构建，可以按照以下步骤操作：
+
+1. 打开终端，进入项目根目录
+2. 执行Gradle命令构建release版本：
+   ```bash
+   ./gradlew assembleRelease
+   ```
+3. 构建完成后，签名APK将自动复制到`release`目录
+
+### 签名配置
+
+应用已配置好签名信息：
+
+- 密钥库文件：`app/keystore/release.keystore`
+- 密钥库密码：`smsmonitor`
+- 密钥别名：`smsmonitor`
+- 密钥密码：`smsmonitor`
+
+> **注意**：当前配置的签名密钥是随机生成的临时密钥，仅用于开发和测试目的。正式发布版本应使用您自己的签名密钥替换此临时密钥。在生产环境中，请务必使用安全存储的正式签名密钥。
+
+这些配置已在`app/build.gradle.kts`文件中预设，通常不需要修改。
+
+### 自定义版本信息
+
+如需修改版本号：
+
+1. 打开`app/build.gradle.kts`文件
+2. 修改`versionCode`和`versionName`参数
+3. 重新构建应用
+
 ## 使用指南
 
 1. **安装应用**：安装APK并授予短信读取权限

@@ -1,8 +1,12 @@
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.ksp)
 }
+
 
 android {
     namespace = "com.nothing.sms.monitor"
@@ -21,13 +25,24 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("keystore/release.keystore")
+            storePassword = "smsmonitor"
+            keyAlias = "smsmonitor"
+            keyPassword = "smsmonitor"
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {
@@ -46,6 +61,34 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
+}
+
+// 配置自定义APK输出目录
+tasks.whenTaskAdded {
+    if (name.contains("assembleRelease")) {
+        this.doLast {
+            val releaseDir = File(rootDir, "release")
+            if (!releaseDir.exists()) {
+                releaseDir.mkdirs()
+            }
+
+            val currentTime =
+                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
+
+            val apkFileName = "${android.defaultConfig.applicationId}-" +
+                    "${android.defaultConfig.versionName}-${currentTime}.apk"
+            val sourceApk = project.layout.buildDirectory
+                .file("outputs/apk/release/app-release.apk").get().asFile
+            val destApk = File(releaseDir, apkFileName)
+
+            if (sourceApk.exists()) {
+                sourceApk.copyTo(destApk, overwrite = true)
+                println("APK已复制到: ${destApk.absolutePath}")
+            } else {
+                println("源APK文件不存在: ${sourceApk.absolutePath}")
+            }
         }
     }
 }
