@@ -24,6 +24,11 @@ class SettingsService private constructor(private val appContext: Context) {
         private const val KEY_BINDINGS = "bindings"
         private const val MAX_BINDINGS_PER_DEVICE = 4  // 每个设备最大绑定数量
 
+        // 监控模式相关常量
+        private const val KEY_MONITOR_MODE = "monitor_mode"
+        const val MONITOR_MODE_ALL = "all"
+        const val MONITOR_MODE_KEYWORDS = "keywords"
+
         // 默认关键字列表
         private val DEFAULT_KEYWORDS = listOf(
             "验证码",
@@ -254,5 +259,19 @@ class SettingsService private constructor(private val appContext: Context) {
         if (currentKeywords.remove(keyword)) {
             saveKeywords(currentKeywords)
         }
+    }
+
+    /**
+     * 获取监控模式
+     */
+    fun getMonitorMode(): String {
+        return prefs.getString(KEY_MONITOR_MODE, MONITOR_MODE_KEYWORDS) ?: MONITOR_MODE_KEYWORDS
+    }
+
+    /**
+     * 设置监控模式
+     */
+    fun setMonitorMode(mode: String) {
+        prefs.edit().putString(KEY_MONITOR_MODE, mode).apply()
     }
 }

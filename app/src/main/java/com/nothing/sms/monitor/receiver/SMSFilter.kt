@@ -2,7 +2,7 @@ package com.nothing.sms.monitor.receiver
 
 import android.content.Context
 import com.nothing.sms.monitor.push.PushServiceManager
-import timber.log.Timber
+import com.nothing.sms.monitor.push.SettingsService
 
 /**
  * 短信过滤器
@@ -23,19 +23,26 @@ class SMSFilter(context: Context) {
             return false
         }
 
-        val keywords = settingsService.getKeywords()
-
-        // 如果没有配置关键字，默认所有短信都符合条件
-        if (keywords.isEmpty()) {
-            return true
+        // 根据监控模式判断
+        return when (settingsService.getMonitorMode()) {
+            SettingsService.MONITOR_MODE_ALL -> true  // 监控所有短信模式
+            SettingsService.MONITOR_MODE_KEYWORDS -> {
+                val keywords = settingsService.getKeywords()
+                // 如果没有配置关键字，使用默认关键字列表
+                if (keywords.isEmpty()) {
+                    settingsService.resetToDefaultKeywords()
+                    val defaultKeywords = settingsService.getKeywords()
+                    defaultKeywords.any { keyword ->
+                        content.contains(keyword, ignoreCase = true)
+                    }
+                } else {
+                    keywords.any { keyword ->
+                        content.contains(keyword, ignoreCase = true)
+                    }
+                }
+            }
+            else -> false  // 未知模式，默认不匹配
         }
-
-        val matches = keywords.any { keyword ->
-            content.contains(keyword, ignoreCase = true)
-        }
-
-        Timber.d("短信过滤结果 - 内容: $content, 匹配: $matches")
-        return matches
     }
 
     /**

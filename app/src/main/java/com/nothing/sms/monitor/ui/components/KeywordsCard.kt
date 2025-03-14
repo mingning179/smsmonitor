@@ -53,6 +53,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.nothing.sms.monitor.push.PushServiceManager
+import com.nothing.sms.monitor.push.SettingsService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -73,14 +74,20 @@ fun KeywordsCard() {
     var refreshTrigger by remember { mutableStateOf(0) }
     var showAddDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmDialog by remember { mutableStateOf<String?>(null) }
-    var monitorAllSms by remember { mutableStateOf(keywords.isEmpty()) }
+    var monitorAllSms by remember { 
+        mutableStateOf(settingsService.getMonitorMode() == SettingsService.MONITOR_MODE_ALL)
+    }
     var userManuallyUnchecked by remember { mutableStateOf(false) }
 
     // 刷新关键字列表
     LaunchedEffect(refreshTrigger) {
         keywords = settingsService.getKeywords()
-        if (!userManuallyUnchecked) {
-            monitorAllSms = keywords.isEmpty()
+        // 只在关键字过滤模式下且关键字为空时使用默认关键字列表
+        if (keywords.isEmpty() && 
+            settingsService.getMonitorMode() == SettingsService.MONITOR_MODE_KEYWORDS && 
+            !userManuallyUnchecked) {
+            settingsService.resetToDefaultKeywords()
+            keywords = settingsService.getKeywords()
         }
     }
 
@@ -98,17 +105,14 @@ fun KeywordsCard() {
                         checked = monitorAllSms,
                         onCheckedChange = { checked ->
                             monitorAllSms = checked
+                            settingsService.setMonitorMode(
+                                if (checked) SettingsService.MONITOR_MODE_ALL 
+                                else SettingsService.MONITOR_MODE_KEYWORDS
+                            )
+                            
                             if (!checked) {
                                 userManuallyUnchecked = true
-                            }
-
-                            if (checked && keywords.isNotEmpty()) {
-                                // 如果选择监控所有短信，则清空关键字
-                                coroutineScope.launch {
-                                    keywords.forEach { settingsService.removeKeyword(it) }
-                                    refreshTrigger += 1
-                                }
-                            } else if (checked) {
+                            } else {
                                 userManuallyUnchecked = false
                             }
                         }
@@ -344,13 +348,25 @@ fun KeywordsCard() {
         AlertDialog(
             onDismissRequest = { showDeleteConfirmDialog = null },
             title = { Text("删除关键字") },
-            text = { Text("确定要删除关键字\"${keyword}\"吗？") },
+            text = { 
+                if (keywords.size == 1) {
+                    Text("删除最后一个关键字后，将自动切换到监控所有短信模式。")
+                } else {
+                    Text("确定要删除关键字\"${keyword}\"吗？")
+                }
+            },
             confirmButton = {
                 Button(
                     onClick = {
                         coroutineScope.launch {
                             settingsService.removeKeyword(keyword)
                             showDeleteConfirmDialog = null
+                            // 如果删除的是最后一个关键字，自动切换到监控所有短信模式
+                            if (keywords.size == 1) {
+                                monitorAllSms = true
+                                settingsService.setMonitorMode(SettingsService.MONITOR_MODE_ALL)
+                                userManuallyUnchecked = false
+                            }
                             refreshTrigger += 1
                         }
                     }
