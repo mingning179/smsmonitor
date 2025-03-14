@@ -24,7 +24,8 @@ class ApiPushService(
     companion object {
         const val KEY_API_URL = "api_url"
         const val KEY_ENABLED = "enabled"
-        const val DEFAULT_API_URL = "http://localhost:8080/api"
+        //测试服
+        const val DEFAULT_API_URL = "http://mapp.zqxiaolv.cn/sms-center/app/autoCodeDevice"
         const val DEFAULT_TIMEOUT = 30L // 默认超时时间（秒）
         const val MEDIA_TYPE = "application/json; charset=utf-8"
     }
