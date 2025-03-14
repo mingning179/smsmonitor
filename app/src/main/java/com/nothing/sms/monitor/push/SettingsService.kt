@@ -24,6 +24,12 @@ class SettingsService private constructor(private val appContext: Context) {
         private const val KEY_BINDINGS = "bindings"
         private const val MAX_BINDINGS_PER_DEVICE = 4  // 每个设备最大绑定数量
 
+        // 默认关键字列表
+        private val DEFAULT_KEYWORDS = listOf(
+            "验证码",
+            "税务"
+        )
+
         /**
          * 获取SettingsService实例
          * 注意：应只通过PushServiceManager获取，避免静态Context引用
@@ -205,6 +211,18 @@ class SettingsService private constructor(private val appContext: Context) {
         } else {
             keywordsString.split(",").map { it.trim() }
         }
+    }
+
+    /**
+     * 获取默认关键字列表
+     */
+    fun getDefaultKeywords(): List<String> = DEFAULT_KEYWORDS
+
+    /**
+     * 重置为默认关键字列表
+     */
+    fun resetToDefaultKeywords() {
+        saveKeywords(DEFAULT_KEYWORDS)
     }
 
     /**

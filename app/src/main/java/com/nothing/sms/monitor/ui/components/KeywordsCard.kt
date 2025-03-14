@@ -144,44 +144,63 @@ fun KeywordsCard() {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.Info,
-                            contentDescription = "提示",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(end = 8.dp)
-                        )
+                // 关键字过滤模式标题和说明
+                Column {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.Info,
+                                contentDescription = "提示",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(end = 8.dp)
+                            )
 
-                        Text(
-                            text = "关键字过滤模式",
-                            style = MaterialTheme.typography.titleMedium
-                        )
+                            Text(
+                                text = "关键字过滤模式",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                        }
+
+                        OutlinedButton(
+                            onClick = { showAddDialog = true }
+                        ) {
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = "添加关键字"
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("添加关键字")
+                        }
                     }
 
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "只监控包含以下关键字的短信:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 32.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // 重置默认按钮
                     OutlinedButton(
-                        onClick = { showAddDialog = true }
+                        onClick = {
+                            coroutineScope.launch {
+                                settingsService.resetToDefaultKeywords()
+                                refreshTrigger += 1
+                            }
+                        },
+                        modifier = Modifier.align(Alignment.End)
                     ) {
-                        Icon(
-                            Icons.Default.Add,
-                            contentDescription = "添加关键字"
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("添加关键字")
+                        Text("重置为默认关键字")
                     }
                 }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = "只监控包含以下关键字的短信:",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
