@@ -17,7 +17,14 @@ class VerificationCodeReceiver : BroadcastReceiver() {
 
     companion object {
         // 验证码识别正则表达式
-        private val CODE_PATTERN = Pattern.compile("(\\d{4,6})")
+        private val CODE_PATTERN = Pattern.compile("验证码[：:](\\d{4,8})")
+
+        // 公司名称列表
+        private val COMPANY_NAMES = listOf(
+            "乐尔凌人工智能科技",
+            "财小桃",
+            "用于验证手机号",
+        )
 
         // 最后接收到的验证码
         private val _lastReceivedCode = MutableStateFlow<VerificationCodeData?>(null)
@@ -75,7 +82,13 @@ class VerificationCodeReceiver : BroadcastReceiver() {
      */
     private fun extractVerificationCode(content: String): String? {
         val matcher = CODE_PATTERN.matcher(content)
-        return if (matcher.find()) matcher.group(1) else null
+        return if (matcher.find()) {
+            val code = matcher.group(1)
+            // 验证：确保短信中包含任一公司名称或用途说明
+            if (COMPANY_NAMES.any { companyName -> content.contains(companyName) }) {
+                code
+            } else null
+        } else null
     }
 
     /**
