@@ -52,17 +52,6 @@
             </intent-filter>
         </receiver>
 
-        <!-- 验证码接收器 -->
-        <receiver
-            android:name="com.nothing.sms.monitor.receiver.VerificationCodeReceiver"
-            android:enabled="true"
-            android:exported="true"
-            android:permission="android.permission.BROADCAST_SMS">
-            <intent-filter android:priority="998">
-                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
-            </intent-filter>
-        </receiver>
-
         <!-- 开机启动接收器 -->
         <receiver
             android:name="com.nothing.sms.monitor.receiver.BootReceiver"

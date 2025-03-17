@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.nothing.sms.monitor.push.ApiPushService
 import com.nothing.sms.monitor.push.PushServiceManager
 import com.nothing.sms.monitor.push.SettingsService
-import com.nothing.sms.monitor.receiver.VerificationCodeReceiver
+import com.nothing.sms.monitor.receiver.SMSReceiver
 import com.nothing.sms.monitor.ui.components.CommonCard
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -135,13 +135,13 @@ fun BindingCard() {
             phoneNumber = phoneNumber,
             onDismiss = {
                 showVerifyDialog = null
-                VerificationCodeReceiver.clearLastCode()
+                SMSReceiver.clearLastCode()
             },
             onVerified = { _, _ ->
                 coroutineScope.launch {
                     refreshTrigger += 1 // 刷新绑定列表
                     showVerifyDialog = null
-                    VerificationCodeReceiver.clearLastCode()
+                    SMSReceiver.clearLastCode()
                 }
             },
             apiPushService = apiPushService
@@ -217,7 +217,7 @@ private fun VerificationDialog(
     }
 
     // 监听接收到的验证码
-    val lastReceivedCode by VerificationCodeReceiver.lastReceivedCode.collectAsState()
+    val lastReceivedCode by SMSReceiver.lastReceivedCode.collectAsState()
 
     // 自动填充验证码并识别SIM卡订阅ID
     LaunchedEffect(lastReceivedCode) {

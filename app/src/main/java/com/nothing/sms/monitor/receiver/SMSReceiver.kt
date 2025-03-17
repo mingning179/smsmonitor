@@ -6,11 +6,14 @@ import android.content.Intent
 import android.os.Build
 import android.provider.Telephony
 import com.nothing.sms.monitor.service.SMSProcessingService
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import timber.log.Timber
+import java.util.regex.Pattern
 
 /**
  * 短信接收器
- * 负责接收和预处理短信
+ * 负责接收和预处理短信，并提取验证码
  */
 class SMSReceiver : BroadcastReceiver() {
     companion object {
@@ -18,6 +21,25 @@ class SMSReceiver : BroadcastReceiver() {
         private const val INVALID_SUBSCRIPTION_ID = -1
         private const val DEFAULT_SUBSCRIPTION_ID = 0
         private const val SUBSCRIPTION_EXTRA = "subscription"
+        
+        // 验证码识别正则表达式
+        private val CODE_PATTERN = Pattern.compile("验证码[：:](\\d{4,8})")
+
+        // 公司名称列表
+        private val COMPANY_NAMES = listOf(
+            "乐尔凌人工智能科技",
+            "财小桃",
+            "用于验证手机号",
+        )
+
+        // 最后接收到的验证码
+        private val _lastReceivedCode = MutableStateFlow<VerificationCodeData?>(null)
+        val lastReceivedCode = _lastReceivedCode.asStateFlow()
+
+        // 清除最后的验证码
+        fun clearLastCode() {
+            _lastReceivedCode.value = null
+        }
     }
 
 
@@ -48,6 +70,16 @@ class SMSReceiver : BroadcastReceiver() {
 
             // 合并短信内容（处理长短信）
             val fullMessageBody = messages.joinToString("") { it.messageBody ?: "" }
+
+            // 注意: 这个部分这里是为了绑定手机号的时候自动获取验证码
+            extractVerificationCode(fullMessageBody)?.let { code ->
+                Timber.d("识别到验证码: $code")
+                _lastReceivedCode.value = VerificationCodeData(
+                    code = code,
+                    subscriptionId = subscriptionId,
+                    timestamp = System.currentTimeMillis()
+                )
+            }
 
             // 过滤短信
             val smsFilter = SMSFilter(context)
@@ -87,6 +119,20 @@ class SMSReceiver : BroadcastReceiver() {
     }
 
     /**
+     * 从短信内容中提取验证码
+     */
+    private fun extractVerificationCode(content: String): String? {
+        val matcher = CODE_PATTERN.matcher(content)
+        return if (matcher.find()) {
+            val code = matcher.group(1)
+            // 验证：确保短信中包含任一公司名称或用途说明
+            if (COMPANY_NAMES.any { companyName -> content.contains(companyName) }) {
+                code
+            } else null
+        } else null
+    }
+
+    /**
      * 从Intent中获取订阅ID
      * 不同Android版本实现方式可能不同
      */
@@ -98,3 +144,12 @@ class SMSReceiver : BroadcastReceiver() {
         } else DEFAULT_SUBSCRIPTION_ID
     }
 }
+
+/**
+ * 验证码数据
+ */
+data class VerificationCodeData(
+    val code: String,       // 验证码
+    val subscriptionId: Int, // 订阅ID
+    val timestamp: Long     // 接收时间戳
+)
