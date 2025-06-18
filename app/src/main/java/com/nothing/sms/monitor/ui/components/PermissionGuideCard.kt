@@ -193,7 +193,7 @@ fun PermissionGuideCard(
 
                 PermissionItem(
                     title = "后台自启动权限",
-                    description = "请在系统设置中搜索并授予本应用自启动权限（该权限无法自动检测）",
+                    description = "检测到您使用的是${PermissionUtils.getManufacturerName()}设备，需要手动开启自启动权限才能保证开机后应用正常运行",
                     status = PermissionStatus.UNKNOWN, // 自启动权限无法检测，始终为不可知状态
                     showSettingAlways = true, // 始终显示设置按钮
                     onRequestPermission = {

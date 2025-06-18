@@ -49,10 +49,8 @@ class PushServiceManager private constructor(private val context: Context) {
         // 预先创建SettingsService实例
         _settingsService = SettingsService.getInstance(context)
 
-        // 注册API推送服务（默认启用）
+        // 注册API推送服务
         val apiService = ApiPushService(context, _settingsService!!)
-        // 默认启用API推送
-        apiService.saveConfigs(mapOf("enabled" to "true"))
         registerPushService(apiService)
         // 保存实例引用
         _apiPushService = apiService

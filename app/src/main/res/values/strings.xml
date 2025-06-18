@@ -1,3 +1,4 @@
 <resources>
+    <!-- 默认应用名称，会在构建时根据不同的flavor动态替换 -->
     <string name="app_name">验证码信使</string>
 </resources>

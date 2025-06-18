@@ -180,49 +180,26 @@ object PermissionUtils {
     }
 
     /**
-     * 专门针对华为设备打开自启动权限设置
-     * 华为设备系统版本差异较大，需要尝试多种方案
-     */
-    private fun openHuaweiAutoStartSettings(activity: Activity) {
-        try {
-            // 方案1: 直接使用EMUI 11+或HarmonyOS常用的路径
-            val intent = Intent()
-            intent.component = android.content.ComponentName(
-                "com.huawei.systemmanager",
-                "com.huawei.systemmanager.mainscreen.MainScreenActivity"
-            )
-            activity.startActivity(intent)
-            Toast.makeText(
-                activity,
-                "请在系统管理器中找到并点击「应用启动管理」",
-                Toast.LENGTH_LONG
-            ).show()
-            return
-        } catch (e: Exception) {
-            Timber.e(e, "打开华为自启动设置失败")
-            openAppManagerSettings(activity)
-        }
-    }
-
-    /**
      * 打开自启动设置（针对各厂商机型）
-     * 注意：不同厂商的路径不同，可能不全面
+     * 完全委托给AutoStartHelper处理，保持架构一致性
      */
     fun openAutoStartSettings(activity: Activity) {
-        val manufacturer = Build.MANUFACTURER.lowercase()
         try {
-            // 华为设备需要特殊处理
-            if (manufacturer.contains("huawei") || manufacturer.contains("honor")) {
-                openHuaweiAutoStartSettings(activity)
-                return
+            val success = AutoStartHelper.jumpToAutoStartSetting(activity)
+            if (!success) {
+                Timber.w("AutoStartHelper失败，回退到应用管理设置")
+                // 如果AutoStartHelper失败，回退到应用管理设置
+                openAppManagerSettings(activity)
             }
-            Timber.w("无法找到自启动设置页面，跳转到应用管理设置: $manufacturer")
-            // 如果无法找到特定路径，跳转到应用管理设置
-            openAppManagerSettings(activity)
         } catch (e: Exception) {
-            Timber.e(e, "打开自启动设置失败: $manufacturer")
-            // 如果失败，打开应用管理设置
-            openAppManagerSettings(activity)
+            Timber.e(e, "打开自启动设置失败")
+            // 最终回退方案
+            openAppSettings(activity)
+            Toast.makeText(
+                activity,
+                "请在应用设置中找到自启动或权限管理相关选项",
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 
@@ -252,17 +229,17 @@ object PermissionUtils {
      * 主要是针对国产手机的定制系统
      */
     fun needsExtraBackgroundPermission(): Boolean {
-        val manufacturer = Build.MANUFACTURER.lowercase()
-        return manufacturer.contains("xiaomi") ||
-                manufacturer.contains("huawei") ||
-                manufacturer.contains("honor") ||
-                manufacturer.contains("oppo") ||
-                manufacturer.contains("vivo") ||
-                manufacturer.contains("samsung") ||
-                manufacturer.contains("lenovo") ||
-                manufacturer.contains("oneplus") ||
-                manufacturer.contains("meizu")
+        return AutoStartHelper.needAutoStartPermission()
     }
+
+    /**
+     * 获取厂商名称（用于显示）
+     */
+    fun getManufacturerName(): String {
+        return AutoStartHelper.getManufacturerName()
+    }
+
+
 
     /**
      * 打开通知设置

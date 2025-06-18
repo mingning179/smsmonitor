@@ -14,6 +14,53 @@
 - **记录管理**：完整的推送记录查看和管理功能
 - **界面友好**：现代化的Material 3设计风格，流畅的用户体验
 
+## 多版本构建
+
+本项目支持一键构建三个不同环境的版本：
+
+### 版本说明
+
+1. **主线版本** (`mainline`)
+   - 应用ID: `com.nothing.sms.monitor.main`
+   - API: `http://localhost:8080/api`
+   - 用途: 主线开发版本
+
+2. **财小桃测试版** (`cxt_test`)
+   - 应用ID: `com.nothing.sms.monitor.test`
+   - API: `http://mapp.zqxiaolv.cn/sms-center/app/autoCodeDevice`
+   - 用途: 财小桃测试环境
+
+3. **财小桃正式版** (`cxt_prod`)
+   - 应用ID: `com.nothing.sms.monitor`
+   - API: `http://pro.caixiaotaoai.com/sms-center/app/autoCodeDevice`
+   - 用途: 财小桃生产环境
+
+### 一键构建所有版本
+
+```bash
+# 清理并构建所有环境的release版本
+./gradlew clean assembleRelease
+```
+
+执行此命令将自动：
+- 构建三个环境的release包
+- 将APK复制到 `release/` 目录
+- 按统一格式重命名APK文件
+- 所有APK使用同一构建时间戳
+
+### 输出文件
+
+构建完成后，`release/` 目录将包含：
+```
+验证码信使-1.2-主线版-20250618_170401.apk
+验证码信使-1.2-财小桃测试版-20250618_170401.apk
+验证码信使-1.2-财小桃正式版-20250618_170401.apk
+```
+
+### 并行安装
+
+由于使用不同的应用ID，三个版本可以同时安装在同一设备上，方便并行测试。
+
 ## 编译指南
 
 ### 环境要求
@@ -22,16 +69,13 @@
 - JDK 17 或更高版本
 - Gradle 8.0 或更高版本
 
-### 手动构建步骤
+### 构建单个版本
 
-如果你想手动构建，可以按照以下步骤操作：
-
-1. 打开终端，进入项目根目录
-2. 执行Gradle命令构建release版本：
-   ```bash
-   ./gradlew assembleRelease
-   ```
-3. 构建完成后，签名APK将自动复制到`release`目录
+```bash
+./gradlew clean assembleMainlineRelease   # 构建主线版本
+./gradlew clean assembleCxt_testRelease   # 构建财小桃测试版
+./gradlew clean assembleCxt_prodRelease   # 构建财小桃正式版
+```
 
 ### 签名配置
 
@@ -44,15 +88,23 @@
 
 > **注意**：当前配置的签名密钥是随机生成的临时密钥，仅用于开发和测试目的。正式发布版本应使用您自己的签名密钥替换此临时密钥。在生产环境中，请务必使用安全存储的正式签名密钥。
 
-这些配置已在`app/build.gradle.kts`文件中预设，通常不需要修改。
-
 ### 自定义版本信息
 
-如需修改版本号：
+如需修改版本号，在`app/build.gradle.kts`文件中修改：
 
-1. 打开`app/build.gradle.kts`文件
-2. 修改`versionCode`和`versionName`参数
-3. 重新构建应用
+```kotlin
+defaultConfig {
+    versionCode = 13
+    versionName = "1.3"
+    // ...
+}
+```
+
+### 修改API配置
+
+如需修改API地址，在`app/build.gradle.kts`中的`productFlavors`部分修改对应版本的`buildConfigField`。
+
+详细的构建指南请参考：[docs/BUILD_VARIANTS_GUIDE.md](docs/BUILD_VARIANTS_GUIDE.md)
 
 ## 使用指南
 
@@ -71,6 +123,7 @@
 - 集成OkHttp处理网络请求
 - 多SIM卡订阅ID信息传递和识别机制
 - 手机号绑定验证流程
+- Android Build Variants实现多环境构建
 
 ## 手机号绑定功能
 

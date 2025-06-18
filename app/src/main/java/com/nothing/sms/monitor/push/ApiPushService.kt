@@ -1,6 +1,7 @@
 package com.nothing.sms.monitor.push
 
 import android.content.Context
+import com.nothing.sms.monitor.BuildConfig
 import com.nothing.sms.monitor.db.SMSRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -24,7 +25,8 @@ class ApiPushService(
     companion object {
         const val KEY_API_URL = "api_url"
         const val KEY_ENABLED = "enabled"
-        const val DEFAULT_API_URL = "http://localhost:8080/api"
+        // 使用BuildConfig中的默认API URL，根据构建变体自动配置
+        val DEFAULT_API_URL = BuildConfig.DEFAULT_API_URL
         const val DEFAULT_TIMEOUT = 30L // 默认超时时间（秒）
         const val MEDIA_TYPE = "application/json; charset=utf-8"
     }
@@ -40,12 +42,12 @@ class ApiPushService(
             .build()
     }
 
-    init {
-        // 确保服务默认启用
-        if (!getBoolean(KEY_ENABLED, false)) {
-            setEnabled(true)
-        }
-    }
+    /**
+     * API推送服务默认启用
+     * 重写父类的isEnabled属性，为API推送服务提供默认启用逻辑
+     */
+    override val isEnabled: Boolean
+        get() = prefs.getBoolean(enabledKey, true)  // API推送默认启用
 
     override val serviceType: String = "api"
 

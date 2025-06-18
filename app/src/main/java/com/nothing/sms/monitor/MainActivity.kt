@@ -1,6 +1,8 @@
 package com.nothing.sms.monitor
 
 import android.Manifest
+import android.app.ActivityManager
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -53,6 +55,15 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         checkAndRequestPermissions()
+        
+        // 检查是否是从开机启动调用
+        val autoStartService = intent.getBooleanExtra("auto_start_service", false)
+        if (autoStartService) {
+            Timber.i("从开机启动调用，启动短信监控服务")
+            startSMSService()
+            // 从开机启动时，可以选择直接关闭Activity或继续显示UI
+            // 这里选择继续显示UI，用户可以根据需要修改
+        }
 
         setContent {
             SMSMonitorTheme {
@@ -120,8 +131,28 @@ class MainActivity : ComponentActivity() {
         super.onResume()
 
         // 应用切换回来时，检查服务是否还在运行，如果不在则重启
-        Timber.d("检测到服务不在运行，尝试重启服务")
-        startSMSService()
+        if (!isServiceRunning()) {
+            Timber.d("检测到服务不在运行，尝试重启服务")
+            startSMSService()
+        } else {
+            Timber.d("短信监控服务正在运行")
+        }
+    }
+
+    /**
+     * 检查短信处理服务是否正在运行
+     */
+    private fun isServiceRunning(): Boolean {
+        return try {
+            val manager = getSystemService(ACTIVITY_SERVICE) as android.app.ActivityManager
+            val services = manager.getRunningServices(Integer.MAX_VALUE)
+            services.any { 
+                it.service.className == SMSProcessingService::class.java.name 
+            }
+        } catch (e: Exception) {
+            Timber.w(e, "检查服务运行状态失败")
+            false // 如果检查失败，假设服务未运行，尝试重启
+        }
     }
 
 }
