@@ -2,6 +2,7 @@ package com.nothing.sms.monitor.push
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.os.Build
 import android.provider.Settings
 import org.json.JSONArray
 import org.json.JSONObject
@@ -44,8 +45,15 @@ class SettingsService private constructor(private val appContext: Context) {
         }
     }
 
-    private val prefs: SharedPreferences =
-        appContext.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences by lazy {
+        // 使用设备加密存储，以便在用户未解锁时也能访问
+        val context = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            appContext.createDeviceProtectedStorageContext()
+        } else {
+            appContext
+        }
+        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+    }
 
     /**
      * 绑定信息数据类

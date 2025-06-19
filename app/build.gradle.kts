@@ -19,8 +19,8 @@ android {
         applicationId = "com.nothing.sms.monitor"
         minSdk = 25
         targetSdk = 35
-        versionCode = 13
-        versionName = "1.3"
+        versionCode = 15
+        versionName = "1.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

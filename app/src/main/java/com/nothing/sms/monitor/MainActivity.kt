@@ -19,6 +19,7 @@ import androidx.core.content.ContextCompat
 import com.nothing.sms.monitor.service.SMSProcessingService
 import com.nothing.sms.monitor.ui.navigation.AppNavHost
 import com.nothing.sms.monitor.ui.theme.SMSMonitorTheme
+import com.nothing.sms.monitor.util.StorageMigrationHelper
 import timber.log.Timber
 
 class MainActivity : ComponentActivity() {
@@ -54,6 +55,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // 执行数据迁移（仅在用户解锁后才能访问MainActivity）
+        performDataMigration()
+
         checkAndRequestPermissions()
         
         // 检查是否是从开机启动调用
@@ -73,6 +77,28 @@ class MainActivity : ComponentActivity() {
                 ) {
                     AppNavHost()
                 }
+            }
+        }
+    }
+
+    /**
+     * 执行数据迁移
+     * 将SharedPreferences从凭据加密存储迁移到设备加密存储
+     */
+    private fun performDataMigration() {
+        // 仅在Android N及以上版本执行迁移
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            try {
+                Timber.d("开始执行数据迁移")
+                // 迁移所有相关的SharedPreferences
+                val prefsToMigrate = listOf(
+                    "settings_service_prefs",  // SettingsService使用的
+                    "push_services_config"     // BasePushService使用的
+                )
+                StorageMigrationHelper.migrateAllPreferences(this, prefsToMigrate)
+                Timber.d("数据迁移完成")
+            } catch (e: Exception) {
+                Timber.e(e, "数据迁移失败")
             }
         }
     }

@@ -2,6 +2,7 @@ package com.nothing.sms.monitor.push
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.os.Build
 import timber.log.Timber
 
 /**
@@ -19,7 +20,13 @@ abstract class BasePushService(protected val context: Context) : PushService {
      * 获取存储配置的SharedPreferences
      */
     protected val prefs: SharedPreferences by lazy {
-        context.getSharedPreferences(PREF_PUSH_SERVICES, Context.MODE_PRIVATE)
+        // 使用设备加密存储，以便在用户未解锁时也能访问
+        val storageContext = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            context.createDeviceProtectedStorageContext()
+        } else {
+            context
+        }
+        storageContext.getSharedPreferences(PREF_PUSH_SERVICES, Context.MODE_PRIVATE)
     }
 
     /**
