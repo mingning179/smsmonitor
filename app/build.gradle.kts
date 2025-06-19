@@ -19,8 +19,8 @@ android {
         applicationId = "com.nothing.sms.monitor"
         minSdk = 25
         targetSdk = 35
-        versionCode = 12
-        versionName = "1.2"
+        versionCode = 13
+        versionName = "1.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -44,7 +44,7 @@ android {
         create("mainline") {
             dimension = "version"
             applicationIdSuffix = ".main"
-            versionNameSuffix = "-主线版"
+            versionNameSuffix = "-mainline"
             buildConfigField("String", "DEFAULT_API_URL", "\"http://localhost:8080/api\"")
             resValue("string", "app_name", "验证码信使")
         }
@@ -52,7 +52,7 @@ android {
         create("cxt_test") {
             dimension = "version"
             applicationIdSuffix = ".test"
-            versionNameSuffix = "-财小桃测试版"
+            versionNameSuffix = "-cxt-test"
             buildConfigField("String", "DEFAULT_API_URL", "\"http://mapp.zqxiaolv.cn/sms-center/app/autoCodeDevice\"")
             resValue("string", "app_name", "财小桃测试版")
         }
@@ -60,7 +60,7 @@ android {
         create("cxt_prod") {
             dimension = "version"
             // 正式版不添加后缀，保持原有的包名
-            versionNameSuffix = "-财小桃正式版"
+            versionNameSuffix = "-cxt-prod"
             buildConfigField("String", "DEFAULT_API_URL", "\"http://pro.caixiaotaoai.com/sms-center/app/autoCodeDevice\"")
             resValue("string", "app_name", "财小桃正式版")
         }
